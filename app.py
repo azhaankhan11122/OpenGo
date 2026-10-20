@@ -156,7 +156,12 @@ class GpsEngine:
                     logger.info(f"devicectl location set successfully: {res.stdout.strip()}")
                     return {"success": True, "message": f"Location shifted to ({latitude:.4f}, {longitude:.4f})"}
                 else:
-                    logger.warning(f"devicectl failed with {res.stderr}. Falling back to pymobiledevice3...")
+                    err_msg = (res.stderr or res.stdout or "").strip()
+                    logger.warning(f"devicectl failed with {err_msg}")
+                    if "4016" in err_msg or "usage assertion" in err_msg:
+                        return {"success": False, "message": "Please unlock your iPhone screen with passcode."}
+                    if "could not be established" in err_msg or "Connection reset" in err_msg:
+                        return {"success": False, "message": "Could not reach iPhone. Ensure device is awake and on same Wi-Fi."}
 
         # 2. Fallback to pymobiledevice3
         if not PYMD3_AVAILABLE:
@@ -189,7 +194,10 @@ class GpsEngine:
                     logger.info("devicectl cleared location simulation successfully.")
                     return {"success": True, "message": "Real GPS restored."}
                 else:
-                    logger.warning(f"devicectl clear failed: {res.stderr}")
+                    err_msg = (res.stderr or res.stdout or "").strip()
+                    logger.warning(f"devicectl clear failed: {err_msg}")
+                    if "4016" in err_msg or "usage assertion" in err_msg:
+                        return {"success": False, "message": "Please unlock your iPhone screen with passcode."}
 
         # 2. Fallback to pymobiledevice3
         if not PYMD3_AVAILABLE:
