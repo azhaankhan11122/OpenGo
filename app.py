@@ -138,6 +138,22 @@ class GpsEngine:
             return {"connected": False, "message": f"Connection check: {str(e)}"}
 
     @staticmethod
+    def _wake_and_pair_device(udid: str):
+        """Re-establishes CoreDevice wireless tunnel if it went idle or unavailable."""
+        try:
+            logger.info(f"Re-establishing wireless link for {udid}...")
+            res = subprocess.run(
+                ["xcrun", "devicectl", "manage", "pair", "--device", udid, "--timeout", "8"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            return res.returncode == 0
+        except Exception as e:
+            logger.debug(f"Auto-pair error: {e}")
+            return False
+
+    @staticmethod
     async def set_location(latitude: float, longitude: float):
         """Simulates GPS coordinates on the connected iPhone."""
         # 1. Try native Apple devicectl first (flawless on iOS 17 and 18)
@@ -146,12 +162,23 @@ class GpsEngine:
             if dev and dev.get("udid"):
                 udid = dev["udid"]
                 logger.info(f"Setting location via devicectl for {dev['name']} ({udid}) to ({latitude}, {longitude})")
-                res = subprocess.run([
+                cmd = [
                     "xcrun", "devicectl", "device", "simulate", "location", "coordinate",
                     "--device", udid,
                     f"--latitude={latitude}",
                     f"--longitude={longitude}"
-                ], capture_output=True, text=True, timeout=10)
+                ]
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+
+                # If wireless tunnel dropped to unavailable or assertion failed, auto-wake & retry!
+                if res.returncode != 0:
+                    err_msg = (res.stderr or res.stdout or "").strip()
+                    logger.info(f"Initial devicectl attempt exited with code {res.returncode}. Checking if re-pair needed...")
+                    if "4016" in err_msg or "usage assertion" in err_msg or "could not be established" in err_msg or "unavailable" in err_msg:
+                        if GpsEngine._wake_and_pair_device(udid):
+                            logger.info("Re-pair succeeded! Retrying location simulation...")
+                            res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+
                 if res.returncode == 0:
                     logger.info(f"devicectl location set successfully: {res.stdout.strip()}")
                     return {"success": True, "message": f"Location shifted to ({latitude:.4f}, {longitude:.4f})"}
@@ -162,6 +189,7 @@ class GpsEngine:
                         return {"success": False, "message": "Please unlock your iPhone screen with passcode."}
                     if "could not be established" in err_msg or "Connection reset" in err_msg:
                         return {"success": False, "message": "Could not reach iPhone. Ensure device is awake and on same Wi-Fi."}
+                    return {"success": False, "message": f"Location error: {err_msg[:60]}"}
 
         # 2. Fallback to pymobiledevice3
         if not PYMD3_AVAILABLE:
@@ -186,10 +214,18 @@ class GpsEngine:
             if dev and dev.get("udid"):
                 udid = dev["udid"]
                 logger.info(f"Clearing location via devicectl for {dev['name']}")
-                res = subprocess.run([
+                cmd = [
                     "xcrun", "devicectl", "device", "simulate", "location", "clear",
                     "--device", udid
-                ], capture_output=True, text=True, timeout=10)
+                ]
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+
+                if res.returncode != 0:
+                    err_msg = (res.stderr or res.stdout or "").strip()
+                    if "4016" in err_msg or "usage assertion" in err_msg or "could not be established" in err_msg:
+                        if GpsEngine._wake_and_pair_device(udid):
+                            res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+
                 if res.returncode == 0:
                     logger.info("devicectl cleared location simulation successfully.")
                     return {"success": True, "message": "Real GPS restored."}
@@ -198,6 +234,7 @@ class GpsEngine:
                     logger.warning(f"devicectl clear failed: {err_msg}")
                     if "4016" in err_msg or "usage assertion" in err_msg:
                         return {"success": False, "message": "Please unlock your iPhone screen with passcode."}
+                    return {"success": False, "message": "Could not clear location."}
 
         # 2. Fallback to pymobiledevice3
         if not PYMD3_AVAILABLE:
