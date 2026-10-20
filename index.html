@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenGo — Private iOS GPS Pinpoint</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: #0f141c;
+      color: #f5f5f7;
+    }
+
+    #map {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* Custom Leaflet Controls */
+    .leaflet-control-zoom {
+      border: none !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
+      border-radius: 12px !important;
+      overflow: hidden;
+    }
+    .leaflet-control-zoom a {
+      background: rgba(30, 36, 48, 0.85) !important;
+      color: #fff !important;
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      width: 36px !important;
+      height: 36px !important;
+      line-height: 36px !important;
+      font-size: 16px !important;
+    }
+
+    .leaflet-control-layers {
+      background: rgba(22, 27, 34, 0.88) !important;
+      backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 12px !important;
+      color: #f5f5f7 !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+      font-size: 13px !important;
+      padding: 6px 12px !important;
+    }
+    .leaflet-control-layers label {
+      color: #f5f5f7 !important;
+      cursor: pointer;
+    }
+    .leaflet-control-layers-toggle {
+      background: rgba(30, 36, 48, 0.85) !important;
+      border-radius: 8px !important;
+    }
+
+    /* Top Search Bar */
+    .search-container {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      width: min(90%, 460px);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: rgba(22, 27, 34, 0.85);
+      backdrop-filter: blur(25px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 28px;
+      padding: 6px 16px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+      transition: all 0.25s ease;
+    }
+
+    .search-box:focus-within {
+      border-color: #0071e3;
+      box-shadow: 0 16px 40px rgba(0, 113, 227, 0.3);
+    }
+
+    .search-box svg {
+      width: 18px;
+      height: 18px;
+      fill: #86868b;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .search-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f5f5f7;
+      font-size: 15px;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .search-input::placeholder {
+      color: #86868b;
+    }
+
+    .search-results {
+      margin-top: 8px;
+      background: rgba(22, 27, 34, 0.94);
+      backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+      display: none;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .search-item {
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #d1d1d6;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.15s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-item:hover {
+      background: rgba(0, 113, 227, 0.3);
+      color: #fff;
+    }
+
+    /* Bottom Floating Action Card */
+    .control-panel {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      width: min(92%, 440px);
+      background: rgba(20, 25, 34, 0.88);
+      backdrop-filter: blur(30px) saturate(190%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 24px;
+      padding: 20px 22px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translate(-50%, 40px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #86868b;
+    }
+
+    .device-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #a1a1a6;
+      cursor: pointer;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #8e8e93;
+      transition: background 0.3s ease;
+    }
+
+    .status-dot.active {
+      background: #30d158;
+      box-shadow: 0 0 10px #30d158;
+    }
+
+    .location-display {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+
+    .location-address {
+      font-size: 15px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .location-coords {
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      color: #0a84ff;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%);
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(0, 113, 227, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0a84ff 0%, #0071e3 100%);
+      box-shadow: 0 10px 24px rgba(10, 132, 255, 0.45);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e5e5ea;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Floating Toast Notification */
+    .toast {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      z-index: 2000;
+      background: rgba(30, 36, 48, 0.95);
+      backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 30px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.4);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { border-color: rgba(48, 209, 88, 0.4); color: #30d158; }
+    .toast.error { border-color: rgba(255, 69, 58, 0.4); color: #ff453a; }
+    .toast.info { border-color: rgba(10, 132, 255, 0.4); color: #0a84ff; }
+
+    /* Custom Pulsing Pin Marker */
+    .pulse-pin-container {
+      position: relative;
+      width: 32px;
+      height: 32px;
+    }
+
+    .pulse-circle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 36px;
+      height: 36px;
+      margin-left: -18px;
+      margin-top: -18px;
+      border-radius: 50%;
+      background: rgba(0, 113, 227, 0.3);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .pin-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -100%);
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Map Canvas -->
+  <div id="map"></div>
+
+  <!-- Top Search -->
+  <div class="search-container">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24">
+        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+      </svg>
+      <input type="text" id="searchInput" class="search-input" placeholder="Search city, landmark, or coordinates..." autocomplete="off">
+    </div>
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <!-- Bottom Control Card -->
+  <div class="control-panel">
+    <div class="panel-header">
+      <span class="panel-title">Target Pin</span>
+      <div id="deviceBadge" class="device-badge" title="Click to refresh device connection">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="deviceText">Checking device...</span>
+      </div>
+    </div>
+
+    <div class="location-display">
+      <div id="locationAddress" class="location-address">Click on the map to drop a pin</div>
+      <div id="locationCoords" class="location-coords">37.774929, -122.419416</div>
+    </div>
+
+    <div class="actions-row">
+      <button id="shiftBtn" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+        </svg>
+        Shift Location
+      </button>
+      <button id="resetBtn" class="btn btn-secondary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        Reset GPS
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span id="toastIcon">✓</span>
+    <span id="toastMessage">Location updated</span>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script>
+    // State
+    let currentLat = 12.869810;
+    let currentLon = 74.843008;
+    let marker = null;
+
+    // Elements
+    const locationAddress = document.getElementById('locationAddress');
+    const locationCoords = document.getElementById('locationCoords');
+    const shiftBtn = document.getElementById('shiftBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const deviceText = document.getElementById('deviceText');
+    const statusDot = document.getElementById('statusDot');
+    const deviceBadge = document.getElementById('deviceBadge');
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    const toastIcon = document.getElementById('toastIcon');
+
+    // Initialize Map with CartoDB Dark/Positron minimalist tiles
+    const map = L.map('map', {
+      center: [currentLat, currentLon],
+      zoom: 13,
+      zoomControl: false
+    });
+
+    // Base tile layers (Zero API keys required)
+    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+    });
+
+    const esriStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri'
+    });
+
+    const esriSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri'
+    });
+
+    // Default to OpenStreetMap
+    osmLayer.addTo(map);
+
+    // Controls on top-right
+    const baseMaps = {
+      "OpenStreetMap": osmLayer,
+      "Esri Clean Streets": esriStreetLayer,
+      "Satellite": esriSatelliteLayer
+    };
+    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Custom SVG Pin Icon
+    const customPinIcon = L.divIcon({
+      className: 'custom-pin',
+      html: `
+        <div class="pulse-pin-container">
+          <div class="pulse-circle"></div>
+          <svg class="pin-icon" width="28" height="36" viewBox="0 0 28 36" fill="none">
+            <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22c0-7.732-6.268-14-14-14z" fill="#0071e3"/>
+            <circle cx="14" cy="14" r="5.5" fill="#ffffff"/>
+          </svg>
+        </div>
+      `,
+      iconSize: [28, 36],
+      iconAnchor: [14, 36]
+    });
+
+    // Drop Pin Function
+    function updatePin(lat, lon, address = null) {
+      currentLat = lat;
+      currentLon = lon;
+      locationCoords.textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
+      if (!marker) {
+        marker = L.marker([lat, lon], { icon: customPinIcon, draggable: true }).addTo(map);
+        marker.on('dragend', function (e) {
+          const pos = e.target.getLatLng();
+          updatePin(pos.lat, pos.lng);
+        });
+      } else {
+        marker.setLatLng([lat, lon]);
+      }
+
+      if (address) {
+        locationAddress.textContent = address;
+      } else {
+        locationAddress.textContent = "Fetching address...";
+        fetchAddress(lat, lon);
+      }
+    }
+
+    // Initial pin
+    updatePin(currentLat, currentLon, "Mangaluru, Karnataka");
+
+    // Click anywhere on map to drop pin
+    map.on('click', function(e) {
+      updatePin(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Reverse Geocoding via Nominatim
+    let geocodeTimeout = null;
+    function fetchAddress(lat, lon) {
+      clearTimeout(geocodeTimeout);
+      geocodeTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16`);
+          const data = await res.json();
+          if (data && data.display_name) {
+            const parts = data.display_name.split(', ');
+            locationAddress.textContent = parts.slice(0, 3).join(', ');
+          } else {
+            locationAddress.textContent = "Selected Coordinate";
+          }
+        } catch {
+          locationAddress.textContent = "Pindropped Location";
+        }
+      }, 300);
+    }
+
+    // Search bar functionality
+    let searchDebounce = null;
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(searchDebounce);
+      const query = e.target.value.trim();
+      if (query.length < 2) {
+        searchResults.style.display = 'none';
+        return;
+      }
+
+      // If user pasted lat, lon
+      const coordMatch = query.match(/^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/);
+      if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lon = parseFloat(coordMatch[3]);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          map.flyTo([lat, lon], 14);
+          updatePin(lat, lon);
+          return;
+        }
+      }
+
+      searchDebounce = setTimeout(async () => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+          const items = await res.json();
+          if (items && items.length > 0) {
+            searchResults.innerHTML = items.map(item => `
+              <div class="search-item" data-lat="${item.lat}" data-lon="${item.lon}">
+                ${item.display_name}
+              </div>
+            `).join('');
+            searchResults.style.display = 'block';
+
+            document.querySelectorAll('.search-item').forEach(el => {
+              el.addEventListener('click', () => {
+                const lat = parseFloat(el.getAttribute('data-lat'));
+                const lon = parseFloat(el.getAttribute('data-lon'));
+                map.flyTo([lat, lon], 14);
+                updatePin(lat, lon, el.textContent.trim().split(', ').slice(0, 2).join(', '));
+                searchResults.style.display = 'none';
+                searchInput.value = '';
+              });
+            });
+          } else {
+            searchResults.style.display = 'none';
+          }
+        } catch {
+          searchResults.style.display = 'none';
+        }
+      }, 350);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-container')) {
+        searchResults.style.display = 'none';
+      }
+    });
+
+    // Toast Notification helper
+    let toastTimeout = null;
+    function showToast(text, type = "success") {
+      clearTimeout(toastTimeout);
+      toast.className = `toast ${type} show`;
+      toastMessage.textContent = text;
+      toastIcon.textContent = type === "success" ? "✓" : (type === "error" ? "✕" : "ℹ");
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    // Backend Bridge
+    async function callBackend(method, ...args) {
+      // 1. PyWebView Native API
+      if (window.pywebview && window.pywebview.api && window.pywebview.api[method]) {
+        return await window.pywebview.api[method](...args);
+      }
+      // 2. Fallback to Local REST API (if opened in regular browser)
+      try {
+        const res = await fetch(`/api/${method}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ args })
+        });
+        return await res.json();
+      } catch (err) {
+        return { success: false, message: "Could not reach backend service." };
+      }
+    }
+
+    // Device Status Polling
+    async function checkDevice() {
+      try {
+        const res = await callBackend('get_device_status');
+        if (res && res.connected) {
+          statusDot.className = "status-dot active";
+          deviceText.textContent = res.device_name || "iPhone Connected";
+        } else {
+          statusDot.className = "status-dot";
+          deviceText.textContent = res.message || "No USB Device";
+        }
+      } catch {
+        statusDot.className = "status-dot";
+        deviceText.textContent = "USB Ready";
+      }
+    }
+
+    deviceBadge.addEventListener('click', checkDevice);
+    setInterval(checkDevice, 6000);
+    setTimeout(checkDevice, 1000);
+
+    // Shift Location Action
+    shiftBtn.addEventListener('click', async () => {
+      shiftBtn.disabled = true;
+      shiftBtn.textContent = "Shifting...";
+      showToast("Connecting to iPhone over USB...", "info");
+
+      try {
+        const res = await callBackend('shift_location', currentLat, currentLon);
+        if (res.success) {
+          showToast(`✓ Location shifted to (${currentLat.toFixed(4)}, ${currentLon.toFixed(4)})`, "success");
+        } else {
+          showToast(res.message || "Failed to shift location.", "error");
+        }
+      } catch (e) {
+        showToast("Error executing location shift: " + e.message, "error");
+      } finally {
+        shiftBtn.disabled = false;
+        shiftBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+          </svg>
+          Shift Location
+        `;
+      }
+    });
+
+    // Reset GPS Action
+    resetBtn.addEventListener('click', async () => {
+      resetBtn.disabled = true;
+      resetBtn.textContent = "Restoring...";
+      showToast("Restoring real GPS...", "info");
+
+      try {
+        const res = await callBackend('reset_location');
+        if (res.success) {
+          showToast("✓ Real GPS restored on device.", "success");
+        } else {
+          showToast(res.message || "Failed to reset location.", "error");
+        }
+      } catch (e) {
+        showToast("Error: " + e.message, "error");
+      } finally {
+        resetBtn.disabled = false;
+        resetBtn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          Reset GPS
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
