@@ -205,8 +205,35 @@ class GpsEngine:
             return {"success": False, "message": f"Error clearing location: {str(e)}"}
 
 
+def get_local_ip():
+    """Finds the Mac's primary local network IP on Wi-Fi."""
+    # 1. Native macOS interface query (fastest & works offline)
+    for iface in ("en0", "en1", "en2", "bridge0"):
+        try:
+            res = subprocess.run(["ipconfig", "getifaddr", iface], capture_output=True, text=True, timeout=1)
+            ip = res.stdout.strip()
+            if ip and not ip.startswith("127."):
+                return ip
+        except Exception:
+            pass
+
+    # 2. Socket routing fallback
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
+CURRENT_PORT = 5055
+LOCAL_IP = "127.0.0.1"
+
+
 class WebviewBridge:
-    """JS Bridge methods exposed to pywebview."""
+    """JS Bridge methods exposed to pywebview and web clients."""
 
     def get_device_status(self):
         return asyncio.run(GpsEngine.get_device_info())
@@ -217,12 +244,29 @@ class WebviewBridge:
     def reset_location(self):
         return asyncio.run(GpsEngine.reset_location())
 
+    def get_network_info(self):
+        ip = get_local_ip()
+        return {
+            "local_ip": ip,
+            "port": CURRENT_PORT,
+            "mobile_url": f"http://{ip}:{CURRENT_PORT}"
+        }
+
 
 class RestRequestHandler(SimpleHTTPRequestHandler):
     """Local HTTP Server handler serving the UI and handling JSON API calls."""
 
     def __init__(self, *args, directory=None, **kwargs):
         super().__init__(*args, directory=str(Path(__file__).parent), **kwargs)
+
+    def do_GET(self):
+        # Redirect root / to /index.html
+        if self.path in ("/", ""):
+            self.send_response(302)
+            self.send_header("Location", "/index.html")
+            self.end_headers()
+            return
+        super().do_GET()
 
     def do_POST(self):
         if self.path.startswith("/api/"):
@@ -264,7 +308,11 @@ def find_free_port(start_port=5055):
 
 
 def start_server(port):
-    server_address = ("127.0.0.1", port)
+    global CURRENT_PORT, LOCAL_IP
+    CURRENT_PORT = port
+    LOCAL_IP = get_local_ip()
+    # Bind to 0.0.0.0 to enable wireless access from iPhone on local Wi-Fi
+    server_address = ("0.0.0.0", port)
     httpd = HTTPServer(server_address, RestRequestHandler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
@@ -274,8 +322,17 @@ def start_server(port):
 def main():
     port = find_free_port(5055)
     start_server(port)
-    url = f"http://127.0.0.1:{port}/index.html"
-    logger.info(f"Local server started at {url}")
+    local_url = f"http://127.0.0.1:{port}/index.html"
+    mobile_url = f"http://{LOCAL_IP}:{port}/index.html"
+
+    logger.info(f"OpenGo local server started at {local_url}")
+    logger.info(f"📱 Wireless access from iPhone: {mobile_url}")
+    print("\n" + "=" * 60)
+    print(" 📍 OpenGo is Running Wirelessly!")
+    print(f" • Mac App URL:       {local_url}")
+    print(f" • iPhone Safari URL: {mobile_url}")
+    print(" Tip: Open the iPhone URL in Safari and tap 'Add to Home Screen'")
+    print("=" * 60 + "\n")
 
     # Check for pywebview to show native macOS window
     try:
@@ -283,7 +340,7 @@ def main():
         bridge = WebviewBridge()
         window = webview.create_window(
             title="OpenGo",
-            url=url,
+            url=local_url,
             js_api=bridge,
             width=1020,
             height=720,
@@ -295,11 +352,7 @@ def main():
     except Exception as e:
         logger.warning(f"Native window could not start ({e}). Opening in default browser...")
         import webbrowser
-        webbrowser.open(url)
-        print(f"\n=======================================================")
-        print(f" OpenGo running at: {url}")
-        print(f" Press Ctrl+C in this terminal to quit.")
-        print(f"=======================================================\n")
+        webbrowser.open(local_url)
         try:
             threading.Event().wait()
         except KeyboardInterrupt:

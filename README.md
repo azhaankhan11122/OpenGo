@@ -65,6 +65,30 @@ Once built, open Spotlight (`Cmd + Space`), type **OpenGo**, and press Enter!
 
 ---
 
+## 📱 Wireless iPhone Mode (Cable-Free Control)
+
+You do **not** need to keep your iPhone plugged in with a cable to shift location!
+
+### How to use OpenGo wirelessly:
+1. **Enable Network Connection in Xcode (One-time setup)**:
+   - Connect your iPhone to your Mac via USB once.
+   - Open **Xcode** → **Window** → **Devices and Simulators** (`Cmd + Shift + 2`).
+   - Select your iPhone and check the box: **"Connect via network"**.
+   - You can now unplug the cable! Your iPhone and Mac just need to be on the same Wi-Fi network (or iPhone Personal Hotspot).
+
+2. **Open on your iPhone**:
+   - Launch OpenGo on your Mac.
+   - Click the **📱 Wireless** button in the app (or look at the URL printed in the terminal).
+   - Point your iPhone Camera at the QR code (or type the `http://<mac-ip>:5055` URL into Safari).
+
+3. **Install as a Full-Screen iPhone App (PWA)**:
+   - In Safari on your iPhone, tap the **Share** button (⎋).
+   - Scroll down and tap **"Add to Home Screen"**.
+   - OpenGo will appear as a native app icon on your iPhone home screen!
+   - Tap it anytime to open full-screen, drop a pin, and shift your location without ever touching your Mac!
+
+---
+
 ## 🛠️ How It Works Under The Hood
 
 Unlike commercial tools that bundle closed-source binaries, inject invasive drivers, or require third-party servers:

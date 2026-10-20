@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OpenGo">
+  <meta name="theme-color" content="#0b0e14">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="manifest" href="/manifest.json">
   <title>OpenGo — Private iOS GPS Pinpoint</title>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -13,6 +20,8 @@
       padding: 0;
       -webkit-font-smoothing: antialiased;
       user-select: none;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body, html {
@@ -20,7 +29,7 @@
       height: 100%;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-      background: #0f141c;
+      background: #0b0e14;
       color: #f5f5f7;
     }
 
@@ -44,6 +53,7 @@
       background: rgba(30, 36, 48, 0.85) !important;
       color: #fff !important;
       backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.1) !important;
       width: 36px !important;
       height: 36px !important;
@@ -54,6 +64,7 @@
     .leaflet-control-layers {
       background: rgba(22, 27, 34, 0.88) !important;
       backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
       border: 1px solid rgba(255, 255, 255, 0.12) !important;
       border-radius: 12px !important;
       color: #f5f5f7 !important;
@@ -73,21 +84,22 @@
     /* Top Search Bar */
     .search-container {
       position: absolute;
-      top: 24px;
+      top: calc(16px + env(safe-area-inset-top, 0px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      width: min(90%, 460px);
+      width: min(92%, 460px);
     }
 
     .search-box {
       display: flex;
       align-items: center;
-      background: rgba(22, 27, 34, 0.85);
+      background: rgba(22, 27, 34, 0.88);
       backdrop-filter: blur(25px) saturate(180%);
+      -webkit-backdrop-filter: blur(25px) saturate(180%);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 28px;
-      padding: 6px 16px;
+      padding: 8px 16px;
       box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
       transition: all 0.25s ease;
     }
@@ -123,6 +135,7 @@
       margin-top: 8px;
       background: rgba(22, 27, 34, 0.94);
       backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 16px;
       overflow: hidden;
@@ -133,7 +146,7 @@
     }
 
     .search-item {
-      padding: 10px 16px;
+      padding: 12px 16px;
       font-size: 13px;
       color: #d1d1d6;
       cursor: pointer;
@@ -144,7 +157,7 @@
       text-overflow: ellipsis;
     }
 
-    .search-item:hover {
+    .search-item:hover, .search-item:active {
       background: rgba(0, 113, 227, 0.3);
       color: #fff;
     }
@@ -152,16 +165,17 @@
     /* Bottom Floating Action Card */
     .control-panel {
       position: absolute;
-      bottom: 28px;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      width: min(92%, 440px);
-      background: rgba(20, 25, 34, 0.88);
+      width: min(94%, 440px);
+      background: rgba(20, 25, 34, 0.92);
       backdrop-filter: blur(30px) saturate(190%);
+      -webkit-backdrop-filter: blur(30px) saturate(190%);
       border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 24px;
-      padding: 20px 22px;
+      border-radius: 26px;
+      padding: 18px 20px;
       box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
       animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -175,15 +189,39 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .panel-title {
       font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #f5f5f7;
+    }
+
+    .wireless-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #86868b;
+      color: #2997ff;
+      background: rgba(0, 113, 227, 0.16);
+      border: 1px solid rgba(0, 113, 227, 0.35);
+      padding: 3px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .wireless-badge:hover, .wireless-badge:active {
+      background: rgba(0, 113, 227, 0.28);
     }
 
     .device-badge {
@@ -216,24 +254,24 @@
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 14px;
-      padding: 12px 14px;
-      margin-bottom: 16px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
     }
 
     .location-address {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       color: #ffffff;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .location-coords {
-      font-size: 13px;
+      font-size: 12px;
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-      color: #0a84ff;
+      color: #2997ff;
     }
 
     .actions-row {
@@ -245,7 +283,7 @@
       flex: 1;
       border: none;
       outline: none;
-      padding: 13px 18px;
+      padding: 13px 16px;
       border-radius: 14px;
       font-size: 14px;
       font-weight: 600;
@@ -293,12 +331,13 @@
     /* Floating Toast Notification */
     .toast {
       position: absolute;
-      top: 24px;
+      top: calc(20px + env(safe-area-inset-top, 0px));
       left: 50%;
       transform: translateX(-50%) translateY(-100px);
       z-index: 2000;
       background: rgba(30, 36, 48, 0.95);
       backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
       border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 30px;
       padding: 10px 20px;
@@ -354,6 +393,205 @@
       transform: translate(-50%, -100%);
       filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
     }
+
+    /* Wireless QR Modal */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.68);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 20px;
+    }
+
+    .modal-backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-sheet {
+      background: rgba(24, 30, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 24px;
+      max-width: 380px;
+      width: 100%;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+      transform: scale(0.95);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-backdrop.show .modal-sheet {
+      transform: scale(1);
+    }
+
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .modal-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-icon {
+      font-size: 26px;
+    }
+
+    .modal-heading h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .modal-heading p {
+      font-size: 12px;
+      color: #86868b;
+      margin-top: 2px;
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: #8e8e93;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .qr-wrapper {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 12px;
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 16px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .qr-wrapper img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 6px;
+    }
+
+    .url-strip {
+      display: flex;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 5px 6px 5px 12px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+
+    .url-strip input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #2997ff;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      width: 100%;
+    }
+
+    .copy-btn {
+      background: #0071e3;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: #0077ed;
+    }
+
+    .modal-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+      color: #c7c7cc;
+      line-height: 1.4;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .step-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .step-num {
+      background: rgba(0, 113, 227, 0.3);
+      color: #2997ff;
+      font-weight: 700;
+      font-size: 10px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 600px) {
+      .wireless-badge {
+        display: none !important;
+      }
+      .control-panel {
+        width: calc(100% - 24px);
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        padding: 16px 16px;
+      }
+      .search-container {
+        width: calc(100% - 24px);
+        top: calc(12px + env(safe-area-inset-top, 0px));
+      }
+      .actions-row {
+        gap: 8px;
+      }
+      .btn {
+        padding: 12px 14px;
+        font-size: 13px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -375,7 +613,15 @@
   <!-- Bottom Control Card -->
   <div class="control-panel">
     <div class="panel-header">
-      <span class="panel-title">Target Pin</span>
+      <div class="header-brand">
+        <span class="panel-title">OpenGo</span>
+        <button id="wirelessBtn" class="wireless-badge" title="Connect Wirelessly via iPhone">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98A16.88 16.88 0 0 0 12 4zm0 3.22c3.51 0 6.7 1.34 9.1 3.52L12 19.89 2.9 10.74C5.3 8.56 8.49 7.22 12 7.22z"/>
+          </svg>
+          <span id="wirelessText">📱 Wireless</span>
+        </button>
+      </div>
       <div id="deviceBadge" class="device-badge" title="Click to refresh device connection">
         <div id="statusDot" class="status-dot"></div>
         <span id="deviceText">Checking device...</span>
@@ -401,6 +647,46 @@
         </svg>
         Reset GPS
       </button>
+    </div>
+  </div>
+
+  <!-- Wireless Connect Modal -->
+  <div id="wirelessModal" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-top">
+        <div class="modal-heading">
+          <div class="modal-icon">📱</div>
+          <div>
+            <h3>OpenGo on iPhone</h3>
+            <p>Control GPS wirelessly from your phone</p>
+          </div>
+        </div>
+        <button id="closeModalBtn" class="close-btn">&times;</button>
+      </div>
+
+      <div class="qr-wrapper">
+        <img id="qrCodeImg" alt="Scan with iPhone Camera" src="" />
+      </div>
+
+      <div class="url-strip">
+        <input type="text" id="mobileUrlDisplay" readonly value="Loading..." />
+        <button id="copyUrlBtn" class="copy-btn">Copy</button>
+      </div>
+
+      <div class="modal-steps">
+        <div class="step-row">
+          <span class="step-num">1</span>
+          <span>Connect your iPhone to the same Wi-Fi network.</span>
+        </div>
+        <div class="step-row">
+          <span class="step-num">2</span>
+          <span>Point your iPhone Camera at the QR code (or visit the URL in Safari).</span>
+        </div>
+        <div class="step-row">
+          <span class="step-num">3</span>
+          <span>Tap <strong>Share</strong> ⎋ → <strong>Add to Home Screen</strong> for a full-screen app!</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -432,8 +718,14 @@
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
     const toastIcon = document.getElementById('toastIcon');
+    const wirelessBtn = document.getElementById('wirelessBtn');
+    const wirelessModal = document.getElementById('wirelessModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const qrCodeImg = document.getElementById('qrCodeImg');
+    const mobileUrlDisplay = document.getElementById('mobileUrlDisplay');
+    const copyUrlBtn = document.getElementById('copyUrlBtn');
 
-    // Initialize Map with CartoDB Dark/Positron minimalist tiles
+    // Initialize Map with dark tiles
     const map = L.map('map', {
       center: [currentLat, currentLon],
       zoom: 13,
@@ -451,102 +743,106 @@
       attribution: 'Tiles &copy; Esri'
     });
 
-    const esriSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    const esriSatLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19,
       attribution: 'Tiles &copy; Esri'
     });
 
-    // Default to OpenStreetMap
+    // Default to OSM
     osmLayer.addTo(map);
 
-    // Controls on top-right
+    // Layer Control
     const baseMaps = {
       "OpenStreetMap": osmLayer,
-      "Esri Clean Streets": esriStreetLayer,
-      "Satellite": esriSatelliteLayer
+      "Street Map": esriStreetLayer,
+      "Satellite": esriSatLayer
     };
     L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+    // Zoom Control
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // Custom SVG Pin Icon
-    const customPinIcon = L.divIcon({
-      className: 'custom-pin',
+    // Custom Glowing SVG Marker Icon
+    const customIcon = L.divIcon({
+      className: 'pulse-pin-container',
       html: `
-        <div class="pulse-pin-container">
-          <div class="pulse-circle"></div>
-          <svg class="pin-icon" width="28" height="36" viewBox="0 0 28 36" fill="none">
-            <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22c0-7.732-6.268-14-14-14z" fill="#0071e3"/>
-            <circle cx="14" cy="14" r="5.5" fill="#ffffff"/>
-          </svg>
-        </div>
+        <div class="pulse-circle"></div>
+        <svg class="pin-icon" width="28" height="34" viewBox="0 0 24 30" fill="none">
+          <path d="M12 0C5.37258 0 0 5.37258 0 12C0 20.25 12 30 12 30C12 30 24 20.25 24 12C24 5.37258 18.6274 0 12 0Z" fill="#0071E3"/>
+          <circle cx="12" cy="11" r="5" fill="#FFFFFF"/>
+        </svg>
       `,
-      iconSize: [28, 36],
-      iconAnchor: [14, 36]
+      iconSize: [32, 32],
+      iconAnchor: [16, 32]
     });
 
-    // Drop Pin Function
-    function updatePin(lat, lon, address = null) {
-      currentLat = lat;
-      currentLon = lon;
-      locationCoords.textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-
-      if (!marker) {
-        marker = L.marker([lat, lon], { icon: customPinIcon, draggable: true }).addTo(map);
-        marker.on('dragend', function (e) {
-          const pos = e.target.getLatLng();
-          updatePin(pos.lat, pos.lng);
-        });
-      } else {
-        marker.setLatLng([lat, lon]);
-      }
-
-      if (address) {
-        locationAddress.textContent = address;
-      } else {
-        locationAddress.textContent = "Fetching address...";
-        fetchAddress(lat, lon);
-      }
-    }
-
-    // Initial pin
-    updatePin(currentLat, currentLon, "Mangaluru, Karnataka");
-
-    // Click anywhere on map to drop pin
-    map.on('click', function(e) {
-      updatePin(e.latlng.lat, e.latlng.lng);
-    });
-
-    // Reverse Geocoding via Nominatim
-    let geocodeTimeout = null;
-    function fetchAddress(lat, lon) {
-      clearTimeout(geocodeTimeout);
-      geocodeTimeout = setTimeout(async () => {
+    // Reverse Geocoding with OpenStreetMap Nominatim
+    let reverseGeocodeTimeout = null;
+    async function reverseGeocode(lat, lon) {
+      locationAddress.textContent = "Fetching address...";
+      clearTimeout(reverseGeocodeTimeout);
+      reverseGeocodeTimeout = setTimeout(async () => {
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16`);
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
           const data = await res.json();
           if (data && data.display_name) {
             const parts = data.display_name.split(', ');
-            locationAddress.textContent = parts.slice(0, 3).join(', ');
+            const summary = parts.slice(0, 3).join(', ');
+            locationAddress.textContent = summary;
           } else {
-            locationAddress.textContent = "Selected Coordinate";
+            locationAddress.textContent = "Unknown location";
           }
         } catch {
-          locationAddress.textContent = "Pindropped Location";
+          locationAddress.textContent = "Location selected";
         }
       }, 300);
     }
 
-    // Search bar functionality
+    // Update Target Pin
+    function updatePin(lat, lon, knownAddress = null) {
+      currentLat = lat;
+      currentLon = lon;
+      locationCoords.textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
+      if (knownAddress) {
+        locationAddress.textContent = knownAddress;
+      } else {
+        reverseGeocode(lat, lon);
+      }
+
+      if (marker) {
+        marker.setLatLng([lat, lon]);
+      } else {
+        marker = L.marker([lat, lon], {
+          icon: customIcon,
+          draggable: true
+        }).addTo(map);
+
+        marker.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          updatePin(pos.lat, pos.lng);
+        });
+      }
+    }
+
+    // Map Click Handler
+    map.on('click', (e) => {
+      updatePin(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Initial Pin Placement
+    updatePin(currentLat, currentLon, "Mangalore, Karnataka, India");
+
+    // Search Autocomplete
     let searchDebounce = null;
     searchInput.addEventListener('input', (e) => {
       clearTimeout(searchDebounce);
       const query = e.target.value.trim();
-      if (query.length < 2) {
+      if (!query || query.length < 2) {
         searchResults.style.display = 'none';
         return;
       }
 
-      // If user pasted lat, lon
       const coordMatch = query.match(/^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/);
       if (coordMatch) {
         const lat = parseFloat(coordMatch[1]);
@@ -609,11 +905,9 @@
 
     // Backend Bridge
     async function callBackend(method, ...args) {
-      // 1. PyWebView Native API
       if (window.pywebview && window.pywebview.api && window.pywebview.api[method]) {
         return await window.pywebview.api[method](...args);
       }
-      // 2. Fallback to Local REST API (if opened in regular browser)
       try {
         const res = await fetch(`/api/${method}`, {
           method: 'POST',
@@ -635,11 +929,11 @@
           deviceText.textContent = res.device_name || "iPhone Connected";
         } else {
           statusDot.className = "status-dot";
-          deviceText.textContent = res.message || "No USB Device";
+          deviceText.textContent = res.message || "Ready";
         }
       } catch {
         statusDot.className = "status-dot";
-        deviceText.textContent = "USB Ready";
+        deviceText.textContent = "Ready";
       }
     }
 
@@ -647,11 +941,48 @@
     setInterval(checkDevice, 6000);
     setTimeout(checkDevice, 1000);
 
+    // Wireless Modal Setup
+    let currentMobileUrl = "";
+    async function initWirelessInfo() {
+      try {
+        const net = await callBackend('get_network_info');
+        if (net && net.mobile_url) {
+          currentMobileUrl = net.mobile_url;
+          mobileUrlDisplay.value = currentMobileUrl;
+          qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(currentMobileUrl)}&margin=4`;
+        }
+      } catch (e) {
+        console.error("Could not fetch wireless info:", e);
+      }
+    }
+
+    wirelessBtn.addEventListener('click', () => {
+      initWirelessInfo();
+      wirelessModal.classList.add('show');
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      wirelessModal.classList.remove('show');
+    });
+
+    wirelessModal.addEventListener('click', (e) => {
+      if (e.target === wirelessModal) {
+        wirelessModal.classList.remove('show');
+      }
+    });
+
+    copyUrlBtn.addEventListener('click', () => {
+      if (currentMobileUrl) {
+        navigator.clipboard.writeText(currentMobileUrl);
+        showToast("✓ Copied URL to clipboard!", "success");
+      }
+    });
+
     // Shift Location Action
     shiftBtn.addEventListener('click', async () => {
       shiftBtn.disabled = true;
       shiftBtn.textContent = "Shifting...";
-      showToast("Connecting to iPhone over USB...", "info");
+      showToast("Sending location to iPhone...", "info");
 
       try {
         const res = await callBackend('shift_location', currentLat, currentLon);
@@ -699,6 +1030,13 @@
         `;
       }
     });
+
+    // Detect if running on mobile device or installed as PWA
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      if (wirelessBtn) wirelessBtn.style.display = 'none';
+      console.log("📱 Running OpenGo on mobile device");
+    }
   </script>
 </body>
 </html>

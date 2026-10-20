@@ -19,9 +19,12 @@ if [ -f "$DIR/AppIcon.icns" ]; then
     cp "$DIR/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 fi
 
-# Copy App Files
+# Copy App Files & PWA assets
 cp "$DIR/app.py" "$APP_DIR/Contents/Resources/app.py"
 cp "$DIR/index.html" "$APP_DIR/Contents/Resources/index.html"
+[ -f "$DIR/manifest.json" ] && cp "$DIR/manifest.json" "$APP_DIR/Contents/Resources/"
+[ -f "$DIR/apple-touch-icon.png" ] && cp "$DIR/apple-touch-icon.png" "$APP_DIR/Contents/Resources/"
+[ -f "$DIR/icon.png" ] && cp "$DIR/icon.png" "$APP_DIR/Contents/Resources/"
 
 # Write Info.plist
 cat << 'EOF' > "$APP_DIR/Contents/Info.plist"

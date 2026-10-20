@@ -163,6 +163,11 @@ def create_app_icon():
     subprocess.run(["iconutil", "-c", "icns", str(iconset_dir), "-o", str(output_icns)], check=True)
     print("✓ Successfully generated AppIcon.icns!")
 
+    # Save Apple Touch Icon for iOS PWA
+    canvas.resize((180, 180), Image.Resampling.LANCZOS).save("apple-touch-icon.png")
+    canvas.resize((512, 512), Image.Resampling.LANCZOS).save("icon.png")
+    print("✓ Successfully generated apple-touch-icon.png and icon.png for iOS PWA!")
+
     # Clean up iconset folder
     shutil.rmtree(iconset_dir)
 
