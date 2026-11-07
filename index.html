@@ -428,6 +428,173 @@
       box-shadow: 0 0 10px #ff9f0a;
     }
 
+    /* On-Card Target Device Selector */
+    .target-device-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .target-device-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .target-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: #86868b;
+      text-transform: uppercase;
+    }
+
+    .target-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .target-count {
+      font-size: 11px;
+      color: #8e8e93;
+    }
+
+    .rescan-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #2997ff;
+      border-radius: 8px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .rescan-btn:hover {
+      background: rgba(41, 151, 255, 0.18);
+      border-color: rgba(41, 151, 255, 0.35);
+    }
+
+    .device-picker-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .device-picker-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .device-picker-item:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .device-picker-item.active {
+      background: rgba(0, 113, 227, 0.16);
+      border-color: #0071e3;
+      box-shadow: 0 2px 10px rgba(0, 113, 227, 0.2);
+    }
+
+    .device-picker-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .device-picker-icon {
+      font-size: 15px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .device-picker-item.active .device-picker-icon {
+      background: rgba(0, 113, 227, 0.35);
+    }
+
+    .device-picker-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .device-picker-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .device-picker-sub {
+      font-size: 11px;
+      color: #8e8e93;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .device-picker-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .device-picker-badge.active {
+      background: #0071e3;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0, 113, 227, 0.4);
+    }
+
+    .device-picker-badge.select {
+      background: rgba(255, 255, 255, 0.06);
+      color: #86868b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .device-picker-item:hover .device-picker-badge.select {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .inline-device-alert {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      line-height: 1.4;
+      background: rgba(255, 159, 10, 0.12);
+      border: 1px solid rgba(255, 159, 10, 0.3);
+      color: #ff9f0a;
+    }
+
     .location-display {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.07);
@@ -809,6 +976,28 @@
       </div>
     </div>
 
+    <!-- On-Card Target Phone Selector -->
+    <div class="target-device-card" id="targetDeviceContainer">
+      <div class="target-device-header">
+        <span class="target-label">TARGET IPHONE</span>
+        <div class="target-meta">
+          <span id="targetDeviceCount" class="target-count">Detecting...</span>
+          <button id="rescanBtn" class="rescan-btn" title="Re-scan connected devices">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/>
+            </svg>
+            Rescan
+          </button>
+        </div>
+      </div>
+
+      <div id="devicePickerList" class="device-picker-list">
+        <div style="font-size: 12px; color: #8e8e93; padding: 6px 4px;">Searching for connected iPhones...</div>
+      </div>
+
+      <div id="inlineDeviceAlert" class="inline-device-alert" style="display: none;"></div>
+    </div>
+
     <div class="location-display">
       <div id="locationAddress" class="location-address">Click on the map to drop a pin</div>
       <div id="locationCoords" class="location-coords">37.774929, -122.419416</div>
@@ -949,6 +1138,10 @@
     const qrCodeImg = document.getElementById('qrCodeImg');
     const mobileUrlDisplay = document.getElementById('mobileUrlDisplay');
     const copyUrlBtn = document.getElementById('copyUrlBtn');
+    const devicePickerList = document.getElementById('devicePickerList');
+    const targetDeviceCount = document.getElementById('targetDeviceCount');
+    const inlineDeviceAlert = document.getElementById('inlineDeviceAlert');
+    const rescanBtn = document.getElementById('rescanBtn');
 
     // Initialize Map with dark tiles
     const map = L.map('map', {
@@ -1218,11 +1411,28 @@
     }
 
     function updateDeviceUI(sel, devices) {
-      if (!sel) {
+      if (!sel || !devices || devices.length === 0) {
         statusDot.className = "status-dot";
         deviceText.textContent = "No iPhone Connected";
         connPill.style.display = "none";
         deviceCountBadge.style.display = "none";
+        if (targetDeviceCount) targetDeviceCount.textContent = "0 Connected";
+        if (devicePickerList) {
+          devicePickerList.innerHTML = `
+            <div style="font-size: 12px; color: #8e8e93; padding: 10px 4px; text-align: center;">
+              🔌 Connect an iPhone via USB cable & unlock the screen
+            </div>
+          `;
+        }
+        if (inlineDeviceAlert) inlineDeviceAlert.style.display = "none";
+        if (shiftBtn) {
+          shiftBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+            </svg>
+            Shift Location
+          `;
+        }
         return;
       }
 
@@ -1235,7 +1445,7 @@
 
       deviceText.textContent = sel.name || "iPhone Connected";
 
-      // Connection Pill
+      // Connection Pill in Header
       connPill.style.display = "inline-block";
       if (sel.is_wired) {
         connPill.className = "conn-pill usb";
@@ -1245,12 +1455,72 @@
         connPill.textContent = "Wi-Fi";
       }
 
-      // Multi-device count
+      // Multi-device count in Header
       if (devices && devices.length > 1) {
         deviceCountBadge.style.display = "inline-block";
         deviceCountBadge.textContent = `${devices.length} Devices ▾`;
       } else {
         deviceCountBadge.style.display = "none";
+      }
+
+      // Update On-Card Target Device Selector
+      if (targetDeviceCount) {
+        targetDeviceCount.textContent = `${devices.length} Available`;
+      }
+
+      if (devicePickerList) {
+        devicePickerList.innerHTML = devices.map(d => {
+          const isSel = (sel && sel.udid === d.udid) || d.is_selected;
+          const icon = d.is_wired ? '🔌' : '📶';
+          const connLabel = d.is_wired ? 'Wired (USB)' : 'Wireless (Wi-Fi)';
+          const devModel = d.marketing_name || 'iPhone';
+
+          return `
+            <div class="device-picker-item ${isSel ? 'active' : ''}" data-udid="${d.udid}" title="Click to simulate on ${d.name}">
+              <div class="device-picker-left">
+                <div class="device-picker-icon">${icon}</div>
+                <div class="device-picker-text">
+                  <div class="device-picker-name">${d.name}</div>
+                  <div class="device-picker-sub">${devModel} • ${connLabel}</div>
+                </div>
+              </div>
+              <div class="device-picker-badge ${isSel ? 'active' : 'select'}">
+                ${isSel ? '✓ ACTIVE' : 'Select'}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Wire click events
+        devicePickerList.querySelectorAll('.device-picker-item').forEach(card => {
+          card.addEventListener('click', async () => {
+            const targetUdid = card.getAttribute('data-udid');
+            if (sel && sel.udid === targetUdid) return;
+            await switchDevice(targetUdid);
+          });
+        });
+      }
+
+      // Update Shift Button text dynamically
+      const targetLabel = sel ? `${sel.name} (${sel.is_wired ? 'USB' : 'Wi-Fi'})` : 'iPhone';
+      if (shiftBtn && !shiftBtn.disabled) {
+        shiftBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+          </svg>
+          Shift Location → ${targetLabel}
+        `;
+      }
+
+      // Inline Alert Banner for instructions/warnings
+      if (inlineDeviceAlert) {
+        if (sel.developer_mode === 'disabled') {
+          inlineDeviceAlert.className = 'inline-device-alert';
+          inlineDeviceAlert.style.display = 'block';
+          inlineDeviceAlert.innerHTML = `⚠️ Developer Mode may be off or pending on <strong>${sel.name}</strong>. If prompted on screen after reboot, tap "Turn On".`;
+        } else {
+          inlineDeviceAlert.style.display = 'none';
+        }
       }
     }
 
@@ -1302,6 +1572,12 @@
     refreshDevicesBtn.addEventListener('click', () => {
       checkDevice(true);
     });
+
+    if (rescanBtn) {
+      rescanBtn.addEventListener('click', () => {
+        checkDevice(true);
+      });
+    }
 
     setInterval(checkDevice, 6000);
     setTimeout(checkDevice, 800);
@@ -1362,11 +1638,12 @@
         showToast("Error executing location shift: " + e.message, "error");
       } finally {
         shiftBtn.disabled = false;
+        const targetLabel = activeDevice ? `${activeDevice.name} (${activeDevice.is_wired ? 'USB' : 'Wi-Fi'})` : 'iPhone';
         shiftBtn.innerHTML = `
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
           </svg>
-          Shift Location
+          Shift Location → ${targetLabel}
         `;
       }
     });

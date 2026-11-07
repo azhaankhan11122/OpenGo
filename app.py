@@ -220,13 +220,7 @@ class GpsEngine:
         dev_name = dev.get("name", "Connected iPhone")
         conn_label = "USB" if dev.get("is_wired") else "Wi-Fi"
 
-        # Check if Developer Mode is known to be disabled
-        if dev.get("developer_mode") == "disabled":
-            msg = f"Developer Mode is turned off on {dev_name}. On iPhone: Settings → Privacy & Security → Developer Mode → Turn ON and restart phone."
-            logger.warning(msg)
-            return {"success": False, "message": msg}
-
-        # 1. Try native Apple devicectl first (official CoreDevice for iOS 17 and 18)
+        # 1. Try native Apple devicectl first (official CoreDevice for iOS 17, 18, and beyond)
         if GpsEngine._devicectl_available():
             logger.info(f"Setting location via devicectl for {dev_name} ({target_udid}) [{conn_label}] to ({latitude}, {longitude})")
             cmd = [
@@ -242,17 +236,6 @@ class GpsEngine:
                 err_msg = (res.stderr or res.stdout or "").strip()
                 logger.info(f"Initial devicectl attempt exited with code {res.returncode}. Output: {err_msg[:120]}")
 
-                # If locked
-                if "locked" in err_msg.lower():
-                    return {"success": False, "message": f"Please unlock {dev_name} with your passcode."}
-
-                # If developer mode off
-                if "developer mode" in err_msg.lower() or "0xe800011c" in err_msg.lower():
-                    return {
-                        "success": False,
-                        "message": f"Developer Mode is turned off on {dev_name}. Open Settings → Privacy & Security → Developer Mode on the phone, turn ON, and restart."
-                    }
-
                 # If assertion failed or connection dropped, try re-pair & retry once
                 if "4016" in err_msg or "usage assertion" in err_msg or "could not be established" in err_msg or "unavailable" in err_msg:
                     if GpsEngine._wake_and_pair_device(target_udid):
@@ -265,17 +248,31 @@ class GpsEngine:
             else:
                 err_msg = (res.stderr or res.stdout or "").strip()
                 logger.warning(f"devicectl failed with {err_msg}")
-                if "locked" in err_msg.lower():
-                    return {"success": False, "message": f"Please unlock {dev_name} with passcode."}
-                if "developer mode" in err_msg.lower() or "0xe800011c" in err_msg.lower():
+
+                # Check device lock state first (error 10003 or 'locked' or 'passcodeRequired')
+                if "locked" in err_msg.lower() or "10003" in err_msg or "passcode" in err_msg.lower():
+                    return {"success": False, "message": f"Please unlock {dev_name} with your passcode and keep screen on."}
+
+                # Check if Developer Mode is actually turned off in iOS Settings (0xe800011c)
+                if "0xe800011c" in err_msg.lower() or "developer mode is not enabled" in err_msg.lower():
                     return {
                         "success": False,
-                        "message": f"Developer Mode is turned off on {dev_name}. Open Settings → Privacy & Security → Developer Mode on the phone, turn ON, and restart."
+                        "message": f"Developer Mode is turned off on {dev_name}. On iPhone: Settings → Privacy & Security → Developer Mode → Turn ON and restart phone."
                     }
+
+                # Check if Developer Disk Image (Cryptex) failed to mount
+                if "developer disk image" in err_msg.lower() or "12040" in err_msg:
+                    return {
+                        "success": False,
+                        "message": f"Cannot mount developer tools on {dev_name}. Unlock your iPhone screen with your passcode so Mac can connect."
+                    }
+
                 if "4016" in err_msg or "usage assertion" in err_msg:
                     return {"success": False, "message": f"Please unlock {dev_name} with your passcode."}
-                if "could not be established" in err_msg or "Connection reset" in err_msg:
+
+                if "could not be established" in err_msg or "connection reset" in err_msg.lower():
                     return {"success": False, "message": f"Could not reach {dev_name}. Ensure device is awake and connected."}
+
                 return {"success": False, "message": f"Location error on {dev_name}: {err_msg[:80]}"}
 
         # 2. Fallback to pymobiledevice3
