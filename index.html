@@ -232,9 +232,181 @@
       padding: 4px 10px;
       border-radius: 20px;
       background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       color: #a1a1a6;
       cursor: pointer;
+      transition: all 0.2s ease;
+      max-width: 250px;
+    }
+
+    .device-badge:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(0, 113, 227, 0.4);
+      color: #ffffff;
+    }
+
+    .device-text-container {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+      font-weight: 500;
+    }
+
+    .conn-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .conn-pill.usb {
+      background: rgba(48, 209, 88, 0.2);
+      color: #30d158;
+      border: 1px solid rgba(48, 209, 88, 0.4);
+    }
+    .conn-pill.wifi {
+      background: rgba(10, 132, 255, 0.2);
+      color: #2997ff;
+      border: 1px solid rgba(10, 132, 255, 0.4);
+    }
+
+    .device-count-badge {
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 1px 5px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    .chevron-icon {
+      stroke: #86868b;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .device-badge:hover .chevron-icon {
+      stroke: #ffffff;
+      transform: translateY(1px);
+    }
+
+    /* Device Switcher Modal */
+    .device-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .device-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .device-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(0, 113, 227, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .device-card.selected {
+      background: rgba(0, 113, 227, 0.15);
+      border-color: #0071e3;
+      box-shadow: 0 4px 16px rgba(0, 113, 227, 0.2);
+    }
+
+    .device-card-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .device-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .device-card.selected .device-avatar {
+      background: rgba(0, 113, 227, 0.3);
+    }
+
+    .device-card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .device-card-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .device-card-sub {
+      font-size: 11px;
+      color: #8e8e93;
+    }
+
+    .device-card-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .selected-check {
+      color: #0071e3;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .warn-badge {
+      font-size: 10px;
+      font-weight: 600;
+      background: rgba(255, 159, 10, 0.2);
+      color: #ff9f0a;
+      border: 1px solid rgba(255, 159, 10, 0.35);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .refresh-devices-btn {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e5e5ea;
+      padding: 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .refresh-devices-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
     }
 
     .status-dot {
@@ -243,11 +415,17 @@
       border-radius: 50%;
       background: #8e8e93;
       transition: background 0.3s ease;
+      flex-shrink: 0;
     }
 
     .status-dot.active {
       background: #30d158;
       box-shadow: 0 0 10px #30d158;
+    }
+
+    .status-dot.warning {
+      background: #ff9f0a;
+      box-shadow: 0 0 10px #ff9f0a;
     }
 
     .location-display {
@@ -622,9 +800,12 @@
           <span id="wirelessText">📱 Wireless</span>
         </button>
       </div>
-      <div id="deviceBadge" class="device-badge" title="Click to refresh device connection">
+      <div id="deviceBadge" class="device-badge" title="Click to view & switch connected devices">
         <div id="statusDot" class="status-dot"></div>
-        <span id="deviceText">Checking device...</span>
+        <div class="device-text-container" id="deviceText">Checking devices...</div>
+        <span id="connPill" class="conn-pill usb" style="display:none;">USB</span>
+        <span id="deviceCountBadge" class="device-count-badge" style="display:none;">1</span>
+        <svg class="chevron-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
     </div>
 
@@ -690,6 +871,44 @@
     </div>
   </div>
 
+  <!-- Device Selector Modal -->
+  <div id="deviceModal" class="modal-backdrop">
+    <div class="modal-sheet" style="max-width: 440px;">
+      <div class="modal-top">
+        <div class="modal-heading">
+          <div class="modal-icon">📲</div>
+          <div>
+            <h3>Connected iOS Devices</h3>
+            <p>Select which phone to change location for</p>
+          </div>
+        </div>
+        <button id="closeDeviceModalBtn" class="close-btn">&times;</button>
+      </div>
+
+      <div id="deviceList" class="device-list">
+        <div style="text-align: center; color: #8e8e93; padding: 20px;">Scanning for devices...</div>
+      </div>
+
+      <button id="refreshDevicesBtn" class="refresh-devices-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        Re-scan USB & Wi-Fi Devices
+      </button>
+
+      <div class="modal-steps" style="margin-top: 14px;">
+        <div class="step-row">
+          <span class="step-num">🔌</span>
+          <span><strong>Connect via Cable:</strong> Plug iPhone into Mac via USB, unlock screen, and tap <em>Trust This Computer</em>.</span>
+        </div>
+        <div class="step-row">
+          <span class="step-num">⚙️</span>
+          <span><strong>Developer Mode:</strong> On iPhone, open <em>Settings → Privacy & Security → Developer Mode</em>, toggle <strong>ON</strong> and restart.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast">
     <span id="toastIcon">✓</span>
@@ -713,6 +932,12 @@
     const deviceText = document.getElementById('deviceText');
     const statusDot = document.getElementById('statusDot');
     const deviceBadge = document.getElementById('deviceBadge');
+    const connPill = document.getElementById('connPill');
+    const deviceCountBadge = document.getElementById('deviceCountBadge');
+    const deviceModal = document.getElementById('deviceModal');
+    const closeDeviceModalBtn = document.getElementById('closeDeviceModalBtn');
+    const deviceList = document.getElementById('deviceList');
+    const refreshDevicesBtn = document.getElementById('refreshDevicesBtn');
     const searchInput = document.getElementById('searchInput');
     const searchResults = document.getElementById('searchResults');
     const toast = document.getElementById('toast');
@@ -920,26 +1145,166 @@
       }
     }
 
-    // Device Status Polling
-    async function checkDevice() {
+    // Device State
+    let cachedDevices = [];
+    let activeDevice = null;
+
+    // Render device list in modal
+    function renderDeviceList(devices) {
+      if (!devices || devices.length === 0) {
+        deviceList.innerHTML = `
+          <div style="text-align: center; color: #8e8e93; padding: 24px;">
+            <div style="font-size: 28px; margin-bottom: 8px;">🔌</div>
+            <div style="font-weight: 600; color: #fff;">No iPhone Detected</div>
+            <div style="font-size: 12px; margin-top: 4px;">Connect your iPhone via USB cable to this Mac and unlock the screen.</div>
+          </div>
+        `;
+        return;
+      }
+
+      deviceList.innerHTML = devices.map(d => {
+        const isSel = d.is_selected;
+        const icon = d.is_wired ? '🔌' : '📶';
+        const connType = d.is_wired ? 'Wired (USB)' : 'Wireless (Wi-Fi)';
+        const devMode = d.developer_mode === 'disabled'
+          ? '<span class="warn-badge">Dev Mode Off</span>'
+          : '<span style="font-size:10px; color:#30d158; font-weight:600;">✓ Ready</span>';
+
+        return `
+          <div class="device-card ${isSel ? 'selected' : ''}" data-udid="${d.udid}">
+            <div class="device-card-left">
+              <div class="device-avatar">${icon}</div>
+              <div class="device-card-info">
+                <div class="device-card-name">
+                  ${d.name}
+                  ${devMode}
+                </div>
+                <div class="device-card-sub">${d.marketing_name} • iOS ${d.version || '?'} • ${connType}</div>
+              </div>
+            </div>
+            <div class="device-card-right">
+              ${isSel ? '<span class="selected-check">✓ Active</span>' : '<span style="font-size:12px; color:#86868b;">Select</span>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Add click listeners to device cards
+      document.querySelectorAll('.device-card').forEach(card => {
+        card.addEventListener('click', async () => {
+          const udid = card.getAttribute('data-udid');
+          await switchDevice(udid);
+        });
+      });
+    }
+
+    async function switchDevice(udid) {
+      showToast("Switching active device...", "info");
       try {
-        const res = await callBackend('get_device_status');
-        if (res && res.connected) {
-          statusDot.className = "status-dot active";
-          deviceText.textContent = res.device_name || "iPhone Connected";
+        const res = await callBackend('select_device', udid);
+        if (res && res.success) {
+          activeDevice = res.selected_device;
+          cachedDevices = res.devices || [];
+          updateDeviceUI(activeDevice, cachedDevices);
+          renderDeviceList(cachedDevices);
+          deviceModal.classList.remove('show');
+          showToast(`✓ Active phone: ${activeDevice ? activeDevice.name : 'Selected'}`, "success");
         } else {
-          statusDot.className = "status-dot";
-          deviceText.textContent = res.message || "Ready";
+          showToast("Failed to switch device.", "error");
         }
-      } catch {
-        statusDot.className = "status-dot";
-        deviceText.textContent = "Ready";
+      } catch (e) {
+        showToast("Error switching device: " + e.message, "error");
       }
     }
 
-    deviceBadge.addEventListener('click', checkDevice);
+    function updateDeviceUI(sel, devices) {
+      if (!sel) {
+        statusDot.className = "status-dot";
+        deviceText.textContent = "No iPhone Connected";
+        connPill.style.display = "none";
+        deviceCountBadge.style.display = "none";
+        return;
+      }
+
+      // Status Dot
+      if (sel.developer_mode === 'disabled') {
+        statusDot.className = "status-dot warning";
+      } else {
+        statusDot.className = "status-dot active";
+      }
+
+      deviceText.textContent = sel.name || "iPhone Connected";
+
+      // Connection Pill
+      connPill.style.display = "inline-block";
+      if (sel.is_wired) {
+        connPill.className = "conn-pill usb";
+        connPill.textContent = "USB";
+      } else {
+        connPill.className = "conn-pill wifi";
+        connPill.textContent = "Wi-Fi";
+      }
+
+      // Multi-device count
+      if (devices && devices.length > 1) {
+        deviceCountBadge.style.display = "inline-block";
+        deviceCountBadge.textContent = `${devices.length} Devices ▾`;
+      } else {
+        deviceCountBadge.style.display = "none";
+      }
+    }
+
+    // Device Status Polling
+    async function checkDevice(showScanFeedback = false) {
+      if (showScanFeedback) {
+        deviceList.innerHTML = `<div style="text-align: center; color: #8e8e93; padding: 20px;">Scanning USB & Wi-Fi...</div>`;
+      }
+      try {
+        const res = await callBackend('get_device_status');
+        if (res && res.connected) {
+          activeDevice = res.selected_device;
+          cachedDevices = res.devices || [];
+          updateDeviceUI(activeDevice, cachedDevices);
+          renderDeviceList(cachedDevices);
+          if (showScanFeedback) {
+            showToast(`Found ${cachedDevices.length} device(s)`, "info");
+          }
+        } else {
+          activeDevice = null;
+          cachedDevices = [];
+          updateDeviceUI(null, []);
+          renderDeviceList([]);
+          if (showScanFeedback) {
+            showToast("No devices found.", "error");
+          }
+        }
+      } catch (err) {
+        console.error("Device polling error:", err);
+      }
+    }
+
+    deviceBadge.addEventListener('click', () => {
+      renderDeviceList(cachedDevices);
+      deviceModal.classList.add('show');
+      checkDevice();
+    });
+
+    closeDeviceModalBtn.addEventListener('click', () => {
+      deviceModal.classList.remove('show');
+    });
+
+    deviceModal.addEventListener('click', (e) => {
+      if (e.target === deviceModal) {
+        deviceModal.classList.remove('show');
+      }
+    });
+
+    refreshDevicesBtn.addEventListener('click', () => {
+      checkDevice(true);
+    });
+
     setInterval(checkDevice, 6000);
-    setTimeout(checkDevice, 1000);
+    setTimeout(checkDevice, 800);
 
     // Wireless Modal Setup
     let currentMobileUrl = "";
@@ -982,12 +1347,14 @@
     shiftBtn.addEventListener('click', async () => {
       shiftBtn.disabled = true;
       shiftBtn.textContent = "Shifting...";
-      showToast("Sending location to iPhone...", "info");
+      const targetName = activeDevice ? `${activeDevice.name} (${activeDevice.is_wired ? 'USB' : 'Wi-Fi'})` : 'iPhone';
+      showToast(`Sending location to ${targetName}...`, "info");
 
       try {
-        const res = await callBackend('shift_location', currentLat, currentLon);
+        const targetUdid = activeDevice ? activeDevice.udid : null;
+        const res = await callBackend('shift_location', currentLat, currentLon, targetUdid);
         if (res.success) {
-          showToast(`✓ Location shifted to (${currentLat.toFixed(4)}, ${currentLon.toFixed(4)})`, "success");
+          showToast(`✓ Location shifted on ${targetName}!`, "success");
         } else {
           showToast(res.message || "Failed to shift location.", "error");
         }
@@ -1008,12 +1375,14 @@
     resetBtn.addEventListener('click', async () => {
       resetBtn.disabled = true;
       resetBtn.textContent = "Restoring...";
-      showToast("Restoring real GPS...", "info");
+      const targetName = activeDevice ? `${activeDevice.name} (${activeDevice.is_wired ? 'USB' : 'Wi-Fi'})` : 'iPhone';
+      showToast(`Restoring real GPS on ${targetName}...`, "info");
 
       try {
-        const res = await callBackend('reset_location');
+        const targetUdid = activeDevice ? activeDevice.udid : null;
+        const res = await callBackend('reset_location', targetUdid);
         if (res.success) {
-          showToast("✓ Real GPS restored on device.", "success");
+          showToast(`✓ Real GPS restored on ${targetName}.`, "success");
         } else {
           showToast(res.message || "Failed to reset location.", "error");
         }

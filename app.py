@@ -42,106 +42,162 @@ import subprocess
 import shutil
 
 class GpsEngine:
-    """Manages the raw Apple developer location simulation service."""
+    """Manages Apple developer location simulation for single or multiple devices."""
+
+    _selected_udid = None
 
     @staticmethod
     def _devicectl_available():
         return shutil.which("xcrun") is not None
 
     @staticmethod
-    def _get_devicectl_device():
-        """Finds the connected physical iOS device via devicectl."""
+    def get_all_devices():
+        """Scans and returns all physical iOS devices connected via USB or Wi-Fi."""
+        devices = []
+        if not GpsEngine._devicectl_available():
+            return devices
+
         try:
             res = subprocess.run(
                 ["xcrun", "devicectl", "list", "devices", "--json-output", "-"],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=6
             )
             if res.returncode == 0 and res.stdout:
                 data = json.loads(res.stdout)
-                devices = data.get("result", {}).get("devices", [])
-                candidates = []
-                for d in devices:
+                for d in data.get("result", {}).get("devices", []):
                     props = d.get("properties", {})
                     hw = props.get("hardware", {}) or d.get("hardwareProperties", {})
                     conn = props.get("connection", {}) or d.get("connectionProperties", {})
                     state = props.get("state", {}) or d.get("deviceProperties", {})
                     sw = props.get("software", {})
-                    
+
                     platform = hw.get("platform", "")
                     dev_type = hw.get("deviceType", "")
-                    pairing_state = conn.get("pairingState", "")
+                    reality = hw.get("reality", "")
+
+                    # Filter for physical iOS devices (iPhone/iPad)
+                    if platform != "iOS" or reality == "simulated" or dev_type.lower() not in ("iphone", "ipad"):
+                        continue
+
+                    udid = hw.get("udid") or d.get("identifier")
+                    name = state.get("name") or d.get("deviceProperties", {}).get("name") or "iPhone"
+                    version_str = sw.get("osVersionNumber", {}).get("stringValue") or state.get("osVersionNumber", "")
+                    marketing_name = hw.get("marketingName") or dev_type
+                    transport = conn.get("transportType", "unknown")
+                    is_wired = (transport == "wired")
                     conn_state = conn.get("state", "") or conn.get("tunnelState", "")
-                    
-                    if platform == "iOS":
-                        udid = hw.get("udid") or d.get("identifier")
-                        name = state.get("name") or "Connected iOS Device"
-                        version_str = sw.get("osVersionNumber", {}).get("stringValue") or state.get("osVersionNumber", "")
-                        candidates.append({
-                            "udid": udid,
-                            "name": name,
-                            "version": version_str,
-                            "marketing_name": hw.get("marketingName") or dev_type or "iPhone",
-                            "is_iphone": dev_type.lower() == "iphone",
-                            "is_paired": pairing_state == "paired",
-                            "is_connected": conn_state == "connected",
-                        })
-                
-                # Priority: paired physical iPhone > any iPhone > any paired iOS device > any iOS candidate
-                candidates.sort(key=lambda x: (x["is_paired"], x["is_iphone"], x["is_connected"]), reverse=True)
-                if candidates:
-                    return candidates[0]
+                    pairing_state = conn.get("pairingState", "")
+                    dev_mode_raw = state.get("developerModeStatus", {})
+                    dev_mode = "enabled" if (isinstance(dev_mode_raw, dict) and "enabled" in dev_mode_raw) else ("disabled" if (isinstance(dev_mode_raw, dict) and "disabled" in dev_mode_raw) else str(dev_mode_raw).lower())
+
+                    devices.append({
+                        "udid": udid,
+                        "name": name,
+                        "version": version_str,
+                        "marketing_name": marketing_name,
+                        "transport": transport,
+                        "is_wired": is_wired,
+                        "conn_state": conn_state,
+                        "pairing_state": pairing_state,
+                        "developer_mode": dev_mode,
+                        "is_selected": False
+                    })
         except Exception as e:
             logger.debug(f"devicectl device lookup error: {e}")
-        return None
+
+        # Determine active selected device:
+        # 1. If currently selected UDID is still connected, retain it
+        selected = None
+        if GpsEngine._selected_udid:
+            for dev in devices:
+                if dev["udid"] == GpsEngine._selected_udid:
+                    selected = dev
+                    break
+
+        # 2. Otherwise auto-select: prefer newly connected WIRED (USB) device, then paired wireless device
+        if not selected and devices:
+            devices.sort(
+                key=lambda x: (
+                    x["is_wired"],
+                    x["developer_mode"] == "enabled",
+                    x["pairing_state"] == "paired"
+                ),
+                reverse=True
+            )
+            selected = devices[0]
+            GpsEngine._selected_udid = selected["udid"]
+
+        for dev in devices:
+            dev["is_selected"] = (selected is not None and dev["udid"] == selected["udid"])
+
+        return devices
+
+    @staticmethod
+    def get_selected_device(target_udid=None):
+        """Returns the specific device by UDID, or the currently active selected device."""
+        devices = GpsEngine.get_all_devices()
+        if target_udid:
+            for dev in devices:
+                if dev["udid"] == target_udid:
+                    return dev
+
+        for dev in devices:
+            if dev.get("is_selected"):
+                return dev
+
+        return devices[0] if devices else None
+
+    @staticmethod
+    def select_device(udid: str):
+        """Switches the active device to the given UDID."""
+        GpsEngine._selected_udid = udid
+        devices = GpsEngine.get_all_devices()
+        selected = GpsEngine.get_selected_device(udid)
+        logger.info(f"Active device changed to: {selected['name'] if selected else udid}")
+        return {
+            "success": True,
+            "selected_udid": udid,
+            "selected_device": selected,
+            "devices": devices
+        }
 
     @staticmethod
     async def get_device_info():
-        """Returns metadata about the currently connected USB device."""
-        # 1. Try native Apple devicectl first (official CoreDevice support for iOS 17 & 18)
-        if GpsEngine._devicectl_available():
-            dev = GpsEngine._get_devicectl_device()
-            if dev:
-                version_str = f" (iOS {dev['version']})" if dev['version'] else ""
-                return {
-                    "connected": True,
-                    "device_name": f"{dev['name']}{version_str}",
-                    "model": dev['marketing_name'],
-                    "version": dev['version'],
-                    "udid": dev['udid']
-                }
-
-        # 2. Try pymobiledevice3 fallback
-        if not PYMD3_AVAILABLE:
-            return {"connected": False, "message": "No iPhone connected via USB"}
-
-        try:
-            client = await create_using_usbmux(connection_type="USB")
-            vals = await client.get_value()
-            name = vals.get("DeviceName", "Connected iPhone")
-            version = vals.get("ProductVersion", "")
-            model = vals.get("ProductType", "iPhone")
+        """Returns summary metadata about connected devices and the selected phone."""
+        devices = GpsEngine.get_all_devices()
+        if not devices:
             return {
-                "connected": True,
-                "device_name": f"{name} (iOS {version})",
-                "model": model,
-                "version": version
+                "connected": False,
+                "message": "No iPhone detected (connect via USB)",
+                "devices": [],
+                "selected_device": None
             }
-        except NoDeviceConnectedError:
-            return {"connected": False, "message": "No iPhone connected via USB"}
-        except PasscodeRequiredError:
-            return {"connected": False, "message": "Please unlock your iPhone"}
-        except (NotPairedError, NotTrustedError):
-            return {"connected": False, "message": "Please tap 'Trust This Computer' on iPhone"}
-        except Exception as e:
-            return {"connected": False, "message": f"Connection check: {str(e)}"}
+
+        sel = GpsEngine.get_selected_device()
+        version_str = f" (iOS {sel['version']})" if sel.get("version") else ""
+        conn_tag = "USB" if sel.get("is_wired") else "Wi-Fi"
+        label = f"{sel['name']}{version_str} [{conn_tag}]"
+
+        return {
+            "connected": True,
+            "device_name": label,
+            "selected_device": sel,
+            "devices": devices,
+            "device_count": len(devices),
+            "model": sel.get("marketing_name", "iPhone"),
+            "version": sel.get("version", ""),
+            "udid": sel.get("udid", ""),
+            "is_wired": sel.get("is_wired", False),
+            "developer_mode": sel.get("developer_mode", "unknown")
+        }
 
     @staticmethod
     def _wake_and_pair_device(udid: str):
-        """Re-establishes CoreDevice wireless tunnel if it went idle or unavailable."""
+        """Re-establishes CoreDevice wireless/wired tunnel if it went idle."""
         try:
-            logger.info(f"Re-establishing wireless link for {udid}...")
+            logger.info(f"Re-establishing connection link for {udid}...")
             res = subprocess.run(
                 ["xcrun", "devicectl", "manage", "pair", "--device", udid, "--timeout", "8"],
                 capture_output=True,
@@ -154,98 +210,133 @@ class GpsEngine:
             return False
 
     @staticmethod
-    async def set_location(latitude: float, longitude: float):
-        """Simulates GPS coordinates on the connected iPhone."""
-        # 1. Try native Apple devicectl first (flawless on iOS 17 and 18)
+    async def set_location(latitude: float, longitude: float, udid: str = None):
+        """Simulates GPS coordinates on the selected or specified iPhone."""
+        dev = GpsEngine.get_selected_device(udid)
+        if not dev:
+            return {"success": False, "message": "No iPhone connected. Connect via USB and unlock."}
+
+        target_udid = dev["udid"]
+        dev_name = dev.get("name", "Connected iPhone")
+        conn_label = "USB" if dev.get("is_wired") else "Wi-Fi"
+
+        # Check if Developer Mode is known to be disabled
+        if dev.get("developer_mode") == "disabled":
+            msg = f"Developer Mode is turned off on {dev_name}. On iPhone: Settings → Privacy & Security → Developer Mode → Turn ON and restart phone."
+            logger.warning(msg)
+            return {"success": False, "message": msg}
+
+        # 1. Try native Apple devicectl first (official CoreDevice for iOS 17 and 18)
         if GpsEngine._devicectl_available():
-            dev = GpsEngine._get_devicectl_device()
-            if dev and dev.get("udid"):
-                udid = dev["udid"]
-                logger.info(f"Setting location via devicectl for {dev['name']} ({udid}) to ({latitude}, {longitude})")
-                cmd = [
-                    "xcrun", "devicectl", "device", "simulate", "location", "coordinate",
-                    "--device", udid,
-                    f"--latitude={latitude}",
-                    f"--longitude={longitude}"
-                ]
-                res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+            logger.info(f"Setting location via devicectl for {dev_name} ({target_udid}) [{conn_label}] to ({latitude}, {longitude})")
+            cmd = [
+                "xcrun", "devicectl", "device", "simulate", "location", "coordinate",
+                "--device", target_udid,
+                f"--latitude={latitude}",
+                f"--longitude={longitude}"
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=14)
 
-                # If wireless tunnel dropped to unavailable or assertion failed, auto-wake & retry!
-                if res.returncode != 0:
-                    err_msg = (res.stderr or res.stdout or "").strip()
-                    logger.info(f"Initial devicectl attempt exited with code {res.returncode}. Checking if re-pair needed...")
-                    if "4016" in err_msg or "usage assertion" in err_msg or "could not be established" in err_msg or "unavailable" in err_msg:
-                        if GpsEngine._wake_and_pair_device(udid):
-                            logger.info("Re-pair succeeded! Retrying location simulation...")
-                            res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+            # If failed, check if re-pairing or wake-up helps
+            if res.returncode != 0:
+                err_msg = (res.stderr or res.stdout or "").strip()
+                logger.info(f"Initial devicectl attempt exited with code {res.returncode}. Output: {err_msg[:120]}")
 
-                if res.returncode == 0:
-                    logger.info(f"devicectl location set successfully: {res.stdout.strip()}")
-                    return {"success": True, "message": f"Location shifted to ({latitude:.4f}, {longitude:.4f})"}
-                else:
-                    err_msg = (res.stderr or res.stdout or "").strip()
-                    logger.warning(f"devicectl failed with {err_msg}")
-                    if "4016" in err_msg or "usage assertion" in err_msg:
-                        return {"success": False, "message": "Please unlock your iPhone screen with passcode."}
-                    if "could not be established" in err_msg or "Connection reset" in err_msg:
-                        return {"success": False, "message": "Could not reach iPhone. Ensure device is awake and on same Wi-Fi."}
-                    return {"success": False, "message": f"Location error: {err_msg[:60]}"}
+                # If locked
+                if "locked" in err_msg.lower():
+                    return {"success": False, "message": f"Please unlock {dev_name} with your passcode."}
+
+                # If developer mode off
+                if "developer mode" in err_msg.lower() or "0xe800011c" in err_msg.lower():
+                    return {
+                        "success": False,
+                        "message": f"Developer Mode is turned off on {dev_name}. Open Settings → Privacy & Security → Developer Mode on the phone, turn ON, and restart."
+                    }
+
+                # If assertion failed or connection dropped, try re-pair & retry once
+                if "4016" in err_msg or "usage assertion" in err_msg or "could not be established" in err_msg or "unavailable" in err_msg:
+                    if GpsEngine._wake_and_pair_device(target_udid):
+                        logger.info("Re-pair succeeded! Retrying location simulation...")
+                        res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+
+            if res.returncode == 0:
+                logger.info(f"devicectl location set successfully on {dev_name}")
+                return {"success": True, "message": f"Location shifted to ({latitude:.4f}, {longitude:.4f}) on {dev_name} ({conn_label})"}
+            else:
+                err_msg = (res.stderr or res.stdout or "").strip()
+                logger.warning(f"devicectl failed with {err_msg}")
+                if "locked" in err_msg.lower():
+                    return {"success": False, "message": f"Please unlock {dev_name} with passcode."}
+                if "developer mode" in err_msg.lower() or "0xe800011c" in err_msg.lower():
+                    return {
+                        "success": False,
+                        "message": f"Developer Mode is turned off on {dev_name}. Open Settings → Privacy & Security → Developer Mode on the phone, turn ON, and restart."
+                    }
+                if "4016" in err_msg or "usage assertion" in err_msg:
+                    return {"success": False, "message": f"Please unlock {dev_name} with your passcode."}
+                if "could not be established" in err_msg or "Connection reset" in err_msg:
+                    return {"success": False, "message": f"Could not reach {dev_name}. Ensure device is awake and connected."}
+                return {"success": False, "message": f"Location error on {dev_name}: {err_msg[:80]}"}
 
         # 2. Fallback to pymobiledevice3
         if not PYMD3_AVAILABLE:
             return {"success": False, "message": "Location engine unavailable."}
 
         try:
-            client = await create_using_usbmux(connection_type="USB")
+            client = await create_using_usbmux(serial=target_udid, connection_type="USB")
             service = DtSimulateLocation(client)
             await service.set(latitude=latitude, longitude=longitude)
-            logger.info(f"Successfully set location to ({latitude}, {longitude})")
-            return {"success": True, "message": f"Location shifted to ({latitude:.4f}, {longitude:.4f})"}
+            logger.info(f"Successfully set location to ({latitude}, {longitude}) on {dev_name}")
+            return {"success": True, "message": f"Location shifted on {dev_name} ({conn_label})"}
         except Exception as e:
             logger.error(f"pymobiledevice3 error: {e}")
             return {"success": False, "message": f"Error: {str(e)}"}
 
     @staticmethod
-    async def reset_location():
-        """Restores hardware GPS on the connected iPhone."""
+    async def reset_location(udid: str = None):
+        """Restores hardware GPS on the selected or specified iPhone."""
+        dev = GpsEngine.get_selected_device(udid)
+        if not dev:
+            return {"success": False, "message": "No iPhone connected."}
+
+        target_udid = dev["udid"]
+        dev_name = dev.get("name", "Connected iPhone")
+
         # 1. Try native Apple devicectl first
         if GpsEngine._devicectl_available():
-            dev = GpsEngine._get_devicectl_device()
-            if dev and dev.get("udid"):
-                udid = dev["udid"]
-                logger.info(f"Clearing location via devicectl for {dev['name']}")
-                cmd = [
-                    "xcrun", "devicectl", "device", "simulate", "location", "clear",
-                    "--device", udid
-                ]
-                res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+            logger.info(f"Clearing location via devicectl for {dev_name} ({target_udid})")
+            cmd = [
+                "xcrun", "devicectl", "device", "simulate", "location", "clear",
+                "--device", target_udid
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
 
-                if res.returncode != 0:
-                    err_msg = (res.stderr or res.stdout or "").strip()
-                    if "4016" in err_msg or "usage assertion" in err_msg or "could not be established" in err_msg:
-                        if GpsEngine._wake_and_pair_device(udid):
-                            res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+            if res.returncode != 0:
+                err_msg = (res.stderr or res.stdout or "").strip()
+                if "4016" in err_msg or "usage assertion" in err_msg or "could not be established" in err_msg:
+                    if GpsEngine._wake_and_pair_device(target_udid):
+                        res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
 
-                if res.returncode == 0:
-                    logger.info("devicectl cleared location simulation successfully.")
-                    return {"success": True, "message": "Real GPS restored."}
-                else:
-                    err_msg = (res.stderr or res.stdout or "").strip()
-                    logger.warning(f"devicectl clear failed: {err_msg}")
-                    if "4016" in err_msg or "usage assertion" in err_msg:
-                        return {"success": False, "message": "Please unlock your iPhone screen with passcode."}
-                    return {"success": False, "message": "Could not clear location."}
+            if res.returncode == 0:
+                logger.info(f"devicectl cleared location simulation successfully on {dev_name}")
+                return {"success": True, "message": f"Real GPS restored on {dev_name}."}
+            else:
+                err_msg = (res.stderr or res.stdout or "").strip()
+                logger.warning(f"devicectl clear failed: {err_msg}")
+                if "locked" in err_msg.lower():
+                    return {"success": False, "message": f"Please unlock {dev_name} with passcode."}
+                return {"success": False, "message": f"Could not clear location on {dev_name}."}
 
         # 2. Fallback to pymobiledevice3
         if not PYMD3_AVAILABLE:
             return {"success": False, "message": "Location engine unavailable."}
 
         try:
-            client = await create_using_usbmux(connection_type="USB")
+            client = await create_using_usbmux(serial=target_udid, connection_type="USB")
             service = DtSimulateLocation(client)
             await service.clear()
-            logger.info("Successfully cleared simulated location")
-            return {"success": True, "message": "Real GPS restored."}
+            logger.info(f"Successfully cleared simulated location on {dev_name}")
+            return {"success": True, "message": f"Real GPS restored on {dev_name}."}
         except Exception as e:
             return {"success": False, "message": f"Error clearing location: {str(e)}"}
 
@@ -283,11 +374,17 @@ class WebviewBridge:
     def get_device_status(self):
         return asyncio.run(GpsEngine.get_device_info())
 
-    def shift_location(self, lat, lon):
-        return asyncio.run(GpsEngine.set_location(float(lat), float(lon)))
+    def get_device_list(self):
+        return {"success": True, "devices": GpsEngine.get_all_devices()}
 
-    def reset_location(self):
-        return asyncio.run(GpsEngine.reset_location())
+    def select_device(self, udid):
+        return GpsEngine.select_device(udid)
+
+    def shift_location(self, lat, lon, udid=None):
+        return asyncio.run(GpsEngine.set_location(float(lat), float(lon), udid))
+
+    def reset_location(self, udid=None):
+        return asyncio.run(GpsEngine.reset_location(udid))
 
     def get_network_info(self):
         ip = get_local_ip()
