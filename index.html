@@ -6,14 +6,50 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OpenGo">
-  <meta name="theme-color" content="#0b0e14">
+  <meta name="theme-color" content="#131624">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="icon" type="image/png" href="/icon.png">
   <link rel="manifest" href="/manifest.json">
-  <title>OpenGo — Private iOS GPS Pinpoint</title>
+  <title>OpenGo — Sacred iOS GPS Sanctuary</title>
+
+  <!-- Typography: Cinzel for Monument Valley architectural headers & SF Pro / Inter for crisp UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
   <style>
+    :root {
+      /* Monument Valley Atmospheric Palette */
+      --mv-bg-dark: #101322;
+      --mv-bg-glass: rgba(22, 26, 44, 0.88);
+      --mv-bg-glass-card: rgba(28, 33, 56, 0.82);
+      --mv-border: rgba(247, 160, 114, 0.22);
+      --mv-border-active: #f7a072;
+      --mv-terracotta: #e06d53;
+      --mv-gold: #f7a072;
+      --mv-totem-yellow: #ffd166;
+      --mv-totem-cyan: #48cfad;
+      --mv-totem-teal: #37bc9b;
+      --mv-amethyst: #a29bfe;
+      --mv-ida-white: #fdfbf7;
+      --mv-text-muted: #9ba1b6;
+      --mv-shadow: 0 25px 60px rgba(7, 9, 18, 0.65), 0 0 30px rgba(247, 160, 114, 0.08);
+
+      /* Physics-based spring easing curve (modern web guidance linear() with standard fallback) */
+      --spring-easing: linear(
+        0, 0.016 0.5%, 0.06 1%, 0.226 2%, 1.116 5.4%, 1.375 6.6%, 1.527 7.7%, 1.565 8.2%,
+        1.585 8.8%, 1.581 9.3%, 1.559 9.8%, 1.458 10.9%, 0.937 14.3%, 0.784 15.5%,
+        0.693 16.6%, 0.67 17.1%, 0.657 17.7%, 0.671 18.7%, 0.729 19.8%, 1.042 23.3%,
+        1.13 24.5%, 1.182 25.6%, 1.201 26.7%, 1.192 27.7%, 1.156 28.8%, 0.977 32.2%,
+        0.925 33.4%, 0.894 34.5%, 0.882 35.6%, 0.887 36.6%, 0.907 37.7%, 1.045 42.4%,
+        1.069 44.5%, 1.059 46.3%, 0.979 50.9%, 0.96 53.4%, 0.966 55.3%, 1.013 59.9%,
+        1.024 62.3%, 0.986 71.2%, 1.008 79.9%, 0.995 88.9%, 1
+      );
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -28,11 +64,29 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-      background: #0b0e14;
-      color: #f5f5f7;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--mv-bg-dark);
+      color: var(--mv-ida-white);
     }
 
+    /* Ambient Cursor Glowing Light Beacon */
+    #cursorAura {
+      position: fixed;
+      width: 480px;
+      height: 480px;
+      margin-left: -240px;
+      margin-top: -240px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(247, 160, 114, 0.12) 0%, rgba(72, 207, 173, 0.06) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 500;
+      mix-blend-mode: screen;
+      transform: translate3d(-999px, -999px, 0);
+      transition: opacity 0.4s ease;
+      will-change: transform;
+    }
+
+    /* Map Viewport Canvas */
     #map {
       width: 100vw;
       height: 100vh;
@@ -40,148 +94,266 @@
       top: 0;
       left: 0;
       z-index: 1;
+      background: #141727;
     }
 
-    /* Custom Leaflet Controls */
+    /* Subtle Architectural Gradient Vignette on top of map */
+    .map-vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+      background: radial-gradient(circle at 50% 50%, transparent 55%, rgba(13, 16, 28, 0.65) 100%),
+                  linear-gradient(180deg, rgba(16, 19, 34, 0.45) 0%, transparent 20%, transparent 75%, rgba(16, 19, 34, 0.75) 100%);
+    }
+
+    /* Floating Ambient Monument Geometry (Parallax Layer) */
+    .monument-parallax-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+      overflow: hidden;
+    }
+
+    .monument-geo-item {
+      position: absolute;
+      will-change: transform;
+      filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.4));
+      opacity: 0.32;
+      transition: opacity 0.5s ease;
+    }
+
+    .geo-top-left {
+      top: 80px;
+      left: 36px;
+      width: 120px;
+      height: 120px;
+    }
+
+    .geo-top-right {
+      top: 100px;
+      right: 48px;
+      width: 100px;
+      height: 100px;
+    }
+
+    .geo-bottom-left {
+      bottom: 220px;
+      left: 40px;
+      width: 90px;
+      height: 90px;
+    }
+
+    .geo-bottom-right {
+      bottom: 240px;
+      right: 50px;
+      width: 110px;
+      height: 110px;
+    }
+
+    /* Custom Leaflet Controls - Monument Valley Theme */
     .leaflet-control-zoom {
-      border: none !important;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
-      border-radius: 12px !important;
+      border: 1px solid var(--mv-border) !important;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4) !important;
+      border-radius: 14px !important;
       overflow: hidden;
     }
     .leaflet-control-zoom a {
-      background: rgba(30, 36, 48, 0.85) !important;
-      color: #fff !important;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      width: 36px !important;
-      height: 36px !important;
-      line-height: 36px !important;
+      background: var(--mv-bg-glass) !important;
+      color: var(--mv-gold) !important;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      width: 38px !important;
+      height: 38px !important;
+      line-height: 38px !important;
       font-size: 16px !important;
+      transition: all 0.2s ease;
+    }
+    .leaflet-control-zoom a:hover {
+      background: rgba(48, 56, 92, 0.95) !important;
+      color: #fff !important;
     }
 
     .leaflet-control-layers {
-      background: rgba(22, 27, 34, 0.88) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      border-radius: 12px !important;
-      color: #f5f5f7 !important;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
-      font-size: 13px !important;
-      padding: 6px 12px !important;
-    }
-    .leaflet-control-layers label {
-      color: #f5f5f7 !important;
-      cursor: pointer;
+      background: var(--mv-bg-glass) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border: 1px solid var(--mv-border) !important;
+      border-radius: 14px !important;
+      color: var(--mv-ida-white) !important;
+      box-shadow: var(--mv-shadow) !important;
+      font-size: 12px !important;
+      font-weight: 500;
+      padding: 8px 14px !important;
     }
     .leaflet-control-layers-toggle {
-      background: rgba(30, 36, 48, 0.85) !important;
-      border-radius: 8px !important;
+      background: var(--mv-bg-glass) !important;
+      border-radius: 10px !important;
+    }
+    .leaflet-control-layers label {
+      color: var(--mv-ida-white) !important;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 4px 0;
     }
 
-    /* Top Search Bar */
+    /* Top Search Bar with 3D Tilt Reactivity */
     .search-container {
       position: absolute;
-      top: calc(16px + env(safe-area-inset-top, 0px));
+      top: calc(18px + env(safe-area-inset-top, 0px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
       width: min(92%, 460px);
+      perspective: 1000px;
+      transform-style: preserve-3d;
+      will-change: transform;
     }
 
     .search-box {
       display: flex;
       align-items: center;
-      background: rgba(22, 27, 34, 0.88);
-      backdrop-filter: blur(25px) saturate(180%);
-      -webkit-backdrop-filter: blur(25px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: var(--mv-bg-glass);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+      border: 1px solid var(--mv-border);
       border-radius: 28px;
-      padding: 8px 16px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
-      transition: all 0.25s ease;
+      padding: 9px 18px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(247, 160, 114, 0.08);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .search-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(247, 160, 114, 0.5), transparent);
     }
 
     .search-box:focus-within {
-      border-color: #0071e3;
-      box-shadow: 0 16px 40px rgba(0, 113, 227, 0.3);
+      border-color: var(--mv-gold);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 0 0 25px rgba(247, 160, 114, 0.25);
     }
 
-    .search-box svg {
-      width: 18px;
-      height: 18px;
-      fill: #86868b;
-      margin-right: 10px;
-      flex-shrink: 0;
+    .search-icon-symbol {
+      color: var(--mv-gold);
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+      font-size: 15px;
     }
 
     .search-input {
       background: transparent;
       border: none;
       outline: none;
-      color: #f5f5f7;
-      font-size: 15px;
-      width: 100%;
+      color: var(--mv-ida-white);
+      font-size: 14px;
       font-family: inherit;
+      width: 100%;
     }
 
     .search-input::placeholder {
-      color: #86868b;
+      color: var(--mv-text-muted);
+      letter-spacing: 0.2px;
     }
 
     .search-results {
       margin-top: 8px;
-      background: rgba(22, 27, 34, 0.94);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
+      background: rgba(22, 26, 44, 0.96);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--mv-border);
+      border-radius: 18px;
       overflow: hidden;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
       display: none;
-      max-height: 220px;
+      max-height: 230px;
       overflow-y: auto;
     }
 
     .search-item {
-      padding: 12px 16px;
+      padding: 12px 18px;
       font-size: 13px;
-      color: #d1d1d6;
+      color: #e4e6ed;
       cursor: pointer;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      transition: background 0.15s ease;
+      transition: background 0.2s ease, color 0.2s ease;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .search-item:hover, .search-item:active {
-      background: rgba(0, 113, 227, 0.3);
-      color: #fff;
+      background: rgba(247, 160, 114, 0.18);
+      color: var(--mv-totem-yellow);
     }
 
-    /* Bottom Floating Action Card */
+    /* Bottom Floating Action Card with Monument Valley Interactive 3D Architecture */
     .control-panel {
       position: absolute;
-      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      width: min(94%, 440px);
-      background: rgba(20, 25, 34, 0.92);
-      backdrop-filter: blur(30px) saturate(190%);
-      -webkit-backdrop-filter: blur(30px) saturate(190%);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 26px;
+      width: min(94%, 450px);
+      background: var(--mv-bg-glass);
+      backdrop-filter: blur(32px) saturate(200%);
+      -webkit-backdrop-filter: blur(32px) saturate(200%);
+      border: 1px solid var(--mv-border);
+      border-radius: 28px;
       padding: 18px 20px;
-      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
-      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--mv-shadow);
+      perspective: 1200px;
+      transform-style: preserve-3d;
+      will-change: transform;
+      animation: monumentSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
     }
 
-    @keyframes slideUp {
-      from { transform: translate(-50%, 40px); opacity: 0; }
+    /* Specular dynamic light highlight tracking cursor on cards */
+    .control-panel::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 28px;
+      background: radial-gradient(circle 320px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(247, 160, 114, 0.12), transparent 75%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Golden top hairline accent */
+    .control-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, rgba(247, 160, 114, 0.6), rgba(72, 207, 173, 0.4), transparent);
+    }
+
+    @keyframes monumentSlideUp {
+      from { transform: translate(-50%, 45px); opacity: 0; }
       to { transform: translate(-50%, 0); opacity: 1; }
     }
 
@@ -190,266 +362,100 @@
       align-items: center;
       justify-content: space-between;
       margin-bottom: 12px;
+      position: relative;
+      z-index: 2;
     }
 
     .header-brand {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
+    }
+
+    .monument-logo {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
     }
 
     .panel-title {
+      font-family: 'Cinzel', serif;
       font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.5px;
-      color: #f5f5f7;
+      letter-spacing: 1.8px;
+      color: var(--mv-ida-white);
+      text-transform: uppercase;
+      text-shadow: 0 2px 10px rgba(247, 160, 114, 0.25);
     }
 
-    .wireless-badge {
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .monument-badge-btn {
       display: flex;
       align-items: center;
       gap: 5px;
       font-size: 11px;
       font-weight: 600;
-      color: #2997ff;
-      background: rgba(0, 113, 227, 0.16);
-      border: 1px solid rgba(0, 113, 227, 0.35);
-      padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--mv-gold);
+      padding: 4px 9px;
       border-radius: 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
     }
 
-    .wireless-badge:hover, .wireless-badge:active {
-      background: rgba(0, 113, 227, 0.28);
-    }
-
-    .device-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #a1a1a6;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      max-width: 250px;
-    }
-
-    .device-badge:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(0, 113, 227, 0.4);
-      color: #ffffff;
-    }
-
-    .device-text-container {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 140px;
-      font-weight: 500;
-    }
-
-    .conn-pill {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    .conn-pill.usb {
-      background: rgba(48, 209, 88, 0.2);
-      color: #30d158;
-      border: 1px solid rgba(48, 209, 88, 0.4);
-    }
-    .conn-pill.wifi {
-      background: rgba(10, 132, 255, 0.2);
-      color: #2997ff;
-      border: 1px solid rgba(10, 132, 255, 0.4);
-    }
-
-    .device-count-badge {
-      font-size: 10px;
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
-      padding: 1px 5px;
-      border-radius: 8px;
-      font-weight: 600;
-    }
-
-    .chevron-icon {
-      stroke: #86868b;
-      transition: transform 0.2s ease;
-      flex-shrink: 0;
-    }
-    .device-badge:hover .chevron-icon {
-      stroke: #ffffff;
-      transform: translateY(1px);
-    }
-
-    /* Device Switcher Modal */
-    .device-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 16px;
-      max-height: 280px;
-      overflow-y: auto;
-    }
-
-    .device-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .device-card:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(0, 113, 227, 0.3);
+    .monument-badge-btn:hover {
+      background: rgba(247, 160, 114, 0.18);
+      border-color: rgba(247, 160, 114, 0.4);
       transform: translateY(-1px);
     }
 
-    .device-card.selected {
-      background: rgba(0, 113, 227, 0.15);
-      border-color: #0071e3;
-      box-shadow: 0 4px 16px rgba(0, 113, 227, 0.2);
-    }
-
-    .device-card-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .device-avatar {
-      width: 36px;
-      height: 36px;
+    /* Sound chime toggle button */
+    .sound-toggle-btn {
+      width: 28px;
+      height: 28px;
       border-radius: 10px;
-      background: rgba(255, 255, 255, 0.06);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-    .device-card.selected .device-avatar {
-      background: rgba(0, 113, 227, 0.3);
+      padding: 0;
+      font-size: 13px;
     }
 
-    .device-card-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .device-card-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .device-card-sub {
-      font-size: 11px;
-      color: #8e8e93;
-    }
-
-    .device-card-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .selected-check {
-      color: #0071e3;
-      font-weight: bold;
-      font-size: 16px;
-    }
-
-    .warn-badge {
-      font-size: 10px;
-      font-weight: 600;
-      background: rgba(255, 159, 10, 0.2);
-      color: #ff9f0a;
-      border: 1px solid rgba(255, 159, 10, 0.35);
-      padding: 2px 6px;
-      border-radius: 6px;
-    }
-
-    .refresh-devices-btn {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e5e5ea;
-      padding: 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-    .refresh-devices-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #8e8e93;
-      transition: background 0.3s ease;
-      flex-shrink: 0;
-    }
-
-    .status-dot.active {
-      background: #30d158;
-      box-shadow: 0 0 10px #30d158;
-    }
-
-    .status-dot.warning {
-      background: #ff9f0a;
-      box-shadow: 0 0 10px #ff9f0a;
-    }
-
-    /* On-Card Target Device Selector */
+    /* Dedicated Target Phone Sanctuary (Totem Switcher) */
     .target-device-card {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 10px 12px;
+      background: var(--mv-bg-glass-card);
+      border: 1px solid rgba(247, 160, 114, 0.16);
+      border-radius: 18px;
+      padding: 11px 13px;
       margin-bottom: 12px;
+      position: relative;
+      z-index: 2;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
     .target-device-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 9px;
     }
 
     .target-label {
+      font-family: 'Cinzel', serif;
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.8px;
-      color: #86868b;
+      letter-spacing: 1.2px;
+      color: var(--mv-gold);
       text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .target-meta {
@@ -460,15 +466,16 @@
 
     .target-count {
       font-size: 11px;
-      color: #8e8e93;
+      color: var(--mv-text-muted);
+      font-weight: 500;
     }
 
     .rescan-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #2997ff;
+      background: rgba(247, 160, 114, 0.12);
+      border: 1px solid rgba(247, 160, 114, 0.28);
+      color: var(--mv-totem-yellow);
       border-radius: 8px;
-      padding: 2px 8px;
+      padding: 3px 8px;
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
@@ -479,37 +486,42 @@
     }
 
     .rescan-btn:hover {
-      background: rgba(41, 151, 255, 0.18);
-      border-color: rgba(41, 151, 255, 0.35);
+      background: rgba(247, 160, 114, 0.24);
+      border-color: var(--mv-gold);
+      transform: scale(1.02);
     }
 
     .device-picker-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 7px;
     }
 
+    /* Monument Valley Totem Tile */
     .device-picker-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 10px;
-      border-radius: 12px;
+      padding: 9px 12px;
+      border-radius: 14px;
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.07);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.25s var(--spring-easing), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+      overflow: hidden;
     }
 
     .device-picker-item:hover {
-      background: rgba(255, 255, 255, 0.07);
-      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(247, 160, 114, 0.08);
+      border-color: rgba(247, 160, 114, 0.3);
+      transform: translateY(-1.5px);
     }
 
     .device-picker-item.active {
-      background: rgba(0, 113, 227, 0.16);
-      border-color: #0071e3;
-      box-shadow: 0 2px 10px rgba(0, 113, 227, 0.2);
+      background: linear-gradient(135deg, rgba(72, 207, 173, 0.18) 0%, rgba(247, 160, 114, 0.14) 100%);
+      border-color: var(--mv-totem-cyan);
+      box-shadow: 0 4px 18px rgba(72, 207, 173, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
 
     .device-picker-left {
@@ -521,18 +533,22 @@
 
     .device-picker-icon {
       font-size: 15px;
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.06);
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      transition: transform 0.25s var(--spring-easing);
     }
 
     .device-picker-item.active .device-picker-icon {
-      background: rgba(0, 113, 227, 0.35);
+      background: rgba(72, 207, 173, 0.25);
+      border-color: var(--mv-totem-cyan);
+      transform: scale(1.05);
     }
 
     .device-picker-text {
@@ -544,69 +560,79 @@
     .device-picker-name {
       font-size: 13px;
       font-weight: 600;
-      color: #fff;
+      color: var(--mv-ida-white);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .device-picker-sub {
       font-size: 11px;
-      color: #8e8e93;
+      color: var(--mv-text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin-top: 1px;
     }
 
     .device-picker-badge {
       font-size: 10px;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 8px;
+      padding: 3px 9px;
+      border-radius: 9px;
       flex-shrink: 0;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      font-family: 'Cinzel', serif;
     }
 
     .device-picker-badge.active {
-      background: #0071e3;
-      color: #fff;
-      box-shadow: 0 2px 6px rgba(0, 113, 227, 0.4);
+      background: linear-gradient(135deg, var(--mv-totem-cyan), var(--mv-totem-teal));
+      color: #0b1a16;
+      box-shadow: 0 2px 10px rgba(72, 207, 173, 0.4);
     }
 
     .device-picker-badge.select {
-      background: rgba(255, 255, 255, 0.06);
-      color: #86868b;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--mv-text-muted);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .device-picker-item:hover .device-picker-badge.select {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
+      background: rgba(247, 160, 114, 0.2);
+      color: var(--mv-gold);
+      border-color: rgba(247, 160, 114, 0.4);
     }
 
     .inline-device-alert {
-      margin-top: 8px;
-      padding: 8px 10px;
-      border-radius: 10px;
+      margin-top: 9px;
+      padding: 8px 12px;
+      border-radius: 12px;
       font-size: 11px;
-      line-height: 1.4;
-      background: rgba(255, 159, 10, 0.12);
-      border: 1px solid rgba(255, 159, 10, 0.3);
-      color: #ff9f0a;
+      line-height: 1.45;
+      background: rgba(255, 159, 10, 0.14);
+      border: 1px solid rgba(255, 159, 10, 0.35);
+      color: #ffbf86;
     }
 
+    /* Location Coords Display */
     .location-display {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
       padding: 10px 14px;
       margin-bottom: 14px;
+      position: relative;
+      z-index: 2;
     }
 
     .location-address {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
-      color: #ffffff;
+      color: var(--mv-ida-white);
       margin-bottom: 3px;
       white-space: nowrap;
       overflow: hidden;
@@ -615,60 +641,71 @@
 
     .location-coords {
       font-size: 12px;
-      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-      color: #2997ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--mv-totem-cyan);
+      letter-spacing: 0.5px;
     }
 
+    /* Mechanical Monument Valley Buttons */
     .actions-row {
       display: flex;
       gap: 10px;
+      position: relative;
+      z-index: 2;
     }
 
     .btn {
       flex: 1;
       border: none;
       outline: none;
-      padding: 13px 16px;
-      border-radius: 14px;
-      font-size: 14px;
-      font-weight: 600;
+      padding: 13px 18px;
+      border-radius: 16px;
+      font-size: 13.5px;
+      font-weight: 700;
       font-family: inherit;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.25s var(--spring-easing), box-shadow 0.25s ease, background 0.25s ease;
+      position: relative;
+      overflow: hidden;
     }
 
     .btn:active {
-      transform: scale(0.97);
+      transform: scale(0.96) !important;
     }
 
+    /* Shift Location Button: Terracotta / Bronze Mechanical Switch */
     .btn-primary {
-      background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%);
+      background: linear-gradient(135deg, #f7a072 0%, #e06d53 60%, #b84b33 100%);
       color: #ffffff;
-      box-shadow: 0 8px 20px rgba(0, 113, 227, 0.35);
+      box-shadow: 0 8px 24px rgba(224, 109, 83, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
     .btn-primary:hover {
-      background: linear-gradient(135deg, #0a84ff 0%, #0071e3 100%);
-      box-shadow: 0 10px 24px rgba(10, 132, 255, 0.45);
+      background: linear-gradient(135deg, #ffb38a 0%, #e87b62 60%, #c4573f 100%);
+      box-shadow: 0 12px 30px rgba(224, 109, 83, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      transform: translateY(-1.5px);
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e5e5ea;
+      color: #e4e6ed;
     }
 
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(247, 160, 114, 0.3);
+      color: var(--mv-ida-white);
+      transform: translateY(-1px);
     }
 
     .btn:disabled {
-      opacity: 0.5;
+      opacity: 0.45;
       cursor: not-allowed;
       transform: none !important;
     }
@@ -676,23 +713,23 @@
     /* Floating Toast Notification */
     .toast {
       position: absolute;
-      top: calc(20px + env(safe-area-inset-top, 0px));
+      top: calc(24px + env(safe-area-inset-top, 0px));
       left: 50%;
       transform: translateX(-50%) translateY(-100px);
-      z-index: 2000;
-      background: rgba(30, 36, 48, 0.95);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      z-index: 2500;
+      background: rgba(22, 26, 44, 0.96);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--mv-gold);
       border-radius: 30px;
-      padding: 10px 20px;
+      padding: 10px 22px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 16px 36px rgba(0,0,0,0.4);
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+      gap: 10px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.5), 0 0 20px rgba(247, 160, 114, 0.2);
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
       opacity: 0;
       pointer-events: none;
     }
@@ -702,60 +739,66 @@
       opacity: 1;
     }
 
-    .toast.success { border-color: rgba(48, 209, 88, 0.4); color: #30d158; }
-    .toast.error { border-color: rgba(255, 69, 58, 0.4); color: #ff453a; }
-    .toast.info { border-color: rgba(10, 132, 255, 0.4); color: #0a84ff; }
+    .toast.success { border-color: var(--mv-totem-cyan); color: var(--mv-totem-cyan); }
+    .toast.error { border-color: #ff6b6b; color: #ff6b6b; }
+    .toast.info { border-color: var(--mv-gold); color: var(--mv-gold); }
 
-    /* Custom Pulsing Pin Marker */
-    .pulse-pin-container {
+    /* Princess Ida's Sacred Beacon Pin Marker */
+    .monument-pin-container {
       position: relative;
+      width: 44px;
+      height: 48px;
+    }
+
+    .monument-pin-ripple {
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%) rotateX(60deg) rotateZ(45deg);
       width: 32px;
       height: 32px;
+      border: 2px solid var(--mv-gold);
+      border-radius: 6px;
+      animation: monumentRunePulse 2.4s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+      pointer-events: none;
     }
 
-    .pulse-circle {
+    @keyframes monumentRunePulse {
+      0% { transform: translateX(-50%) rotateX(60deg) rotateZ(45deg) scale(0.3); opacity: 1; }
+      100% { transform: translateX(-50%) rotateX(60deg) rotateZ(45deg) scale(2.2); opacity: 0; }
+    }
+
+    .monument-beacon-art {
       position: absolute;
-      top: 50%;
+      top: 0;
       left: 50%;
-      width: 36px;
-      height: 36px;
-      margin-left: -18px;
-      margin-top: -18px;
-      border-radius: 50%;
-      background: rgba(0, 113, 227, 0.3);
-      animation: pulse 1.8s infinite;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));
+      animation: beaconFloat 3s infinite ease-in-out;
     }
 
-    @keyframes pulse {
-      0% { transform: scale(0.6); opacity: 1; }
-      100% { transform: scale(1.6); opacity: 0; }
+    @keyframes beaconFloat {
+      0%, 100% { transform: translateX(-50%) translateY(0px); }
+      50% { transform: translateX(-50%) translateY(-5px); }
     }
 
-    .pin-icon {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -100%);
-      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
-    }
-
-    /* Wireless QR Modal */
+    /* Modal Sheet Styling */
     .modal-backdrop {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.68);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      background: rgba(10, 13, 24, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       z-index: 3000;
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.3s ease;
       padding: 20px;
     }
 
@@ -765,15 +808,16 @@
     }
 
     .modal-sheet {
-      background: rgba(24, 30, 42, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 24px;
-      padding: 24px;
-      max-width: 380px;
+      background: rgba(22, 26, 44, 0.96);
+      border: 1px solid var(--mv-border);
+      border-radius: 26px;
+      padding: 26px;
+      max-width: 420px;
       width: 100%;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
-      transform: scale(0.95);
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 35px 70px rgba(0, 0, 0, 0.7), 0 0 30px rgba(247, 160, 114, 0.15);
+      transform: scale(0.94);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
     }
 
     .modal-backdrop.show .modal-sheet {
@@ -790,7 +834,7 @@
     .modal-heading {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .modal-icon {
@@ -798,63 +842,65 @@
     }
 
     .modal-heading h3 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #fff;
+      font-family: 'Cinzel', serif;
+      font-size: 15px;
+      letter-spacing: 0.8px;
+      color: var(--mv-ida-white);
     }
 
     .modal-heading p {
       font-size: 12px;
-      color: #86868b;
+      color: var(--mv-text-muted);
       margin-top: 2px;
     }
 
     .close-btn {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
       border: none;
-      color: #8e8e93;
-      width: 28px;
-      height: 28px;
+      color: var(--mv-text-muted);
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       font-size: 18px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.2s ease;
     }
 
     .close-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(247, 160, 114, 0.2);
       color: #fff;
     }
 
     .qr-wrapper {
       background: #ffffff;
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 12px;
-      width: 180px;
-      height: 180px;
+      width: 190px;
+      height: 190px;
       margin: 0 auto 16px auto;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
     }
 
     .qr-wrapper img {
       width: 100%;
       height: 100%;
       display: block;
-      border-radius: 6px;
+      border-radius: 8px;
     }
 
     .url-strip {
       display: flex;
       gap: 8px;
-      background: rgba(0, 0, 0, 0.35);
+      background: rgba(0, 0, 0, 0.4);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 5px 6px 5px 12px;
+      border-radius: 14px;
+      padding: 6px 8px 6px 14px;
       margin-bottom: 14px;
       align-items: center;
     }
@@ -863,52 +909,53 @@
       background: transparent;
       border: none;
       outline: none;
-      color: #2997ff;
+      color: var(--mv-totem-cyan);
       font-family: ui-monospace, monospace;
       font-size: 12px;
       width: 100%;
     }
 
     .copy-btn {
-      background: #0071e3;
-      color: #fff;
+      background: var(--mv-gold);
+      color: #101322;
       border: none;
-      border-radius: 8px;
-      padding: 6px 12px;
+      border-radius: 10px;
+      padding: 7px 14px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
+      transition: background 0.2s ease;
     }
 
     .copy-btn:hover {
-      background: #0077ed;
+      background: #ffb885;
     }
 
     .modal-steps {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 9px;
       font-size: 12px;
-      color: #c7c7cc;
-      line-height: 1.4;
+      color: #c9cddb;
+      line-height: 1.45;
       background: rgba(255, 255, 255, 0.03);
-      border-radius: 12px;
-      padding: 12px;
+      border-radius: 14px;
+      padding: 14px;
     }
 
     .step-row {
       display: flex;
       align-items: flex-start;
-      gap: 8px;
+      gap: 10px;
     }
 
     .step-num {
-      background: rgba(0, 113, 227, 0.3);
-      color: #2997ff;
+      background: rgba(247, 160, 114, 0.2);
+      color: var(--mv-gold);
       font-weight: 700;
-      font-size: 10px;
-      width: 18px;
-      height: 18px;
+      font-size: 11px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -916,74 +963,130 @@
       flex-shrink: 0;
     }
 
+    /* Accessibility: Respect Reduced Motion Preferences */
+    @media (prefers-reduced-motion: reduce) {
+      .control-panel, .search-container, .monument-geo-item, .monument-beacon-art {
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+      }
+      .monument-pin-ripple {
+        animation: none !important;
+      }
+      #cursorAura {
+        display: none !important;
+      }
+    }
+
     @media (max-width: 600px) {
-      .wireless-badge {
+      .monument-geo-item {
         display: none !important;
       }
       .control-panel {
         width: calc(100% - 24px);
         bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-        padding: 16px 16px;
+        padding: 16px;
       }
       .search-container {
         width: calc(100% - 24px);
         top: calc(12px + env(safe-area-inset-top, 0px));
-      }
-      .actions-row {
-        gap: 8px;
-      }
-      .btn {
-        padding: 12px 14px;
-        font-size: 13px;
       }
     }
   </style>
 </head>
 <body>
 
+  <!-- Ambient Cursor Glow Effect -->
+  <div id="cursorAura"></div>
+
   <!-- Map Canvas -->
   <div id="map"></div>
+  <div class="map-vignette"></div>
 
-  <!-- Top Search -->
-  <div class="search-container">
+  <!-- Monument Valley Ambient Geometric Shapes (Interactive Parallax Field) -->
+  <div class="monument-parallax-layer">
+    <!-- Impossible Tribar Cube Accent (Top Left) -->
+    <svg class="monument-geo-item geo-top-left" data-depth="0.25" viewBox="0 0 100 100" fill="none">
+      <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" stroke="#f7a072" stroke-width="1.5" stroke-dasharray="4 2" fill="rgba(247, 160, 114, 0.05)"/>
+      <polygon points="50,10 85,30 50,50 15,30" fill="rgba(247, 160, 114, 0.15)"/>
+      <polygon points="50,50 85,30 85,70 50,90" fill="rgba(224, 109, 83, 0.22)"/>
+      <polygon points="50,50 15,30 15,70 50,90" fill="rgba(72, 207, 173, 0.12)"/>
+    </svg>
+
+    <!-- Sacred Totem Pillar Fragment (Top Right) -->
+    <svg class="monument-geo-item geo-top-right" data-depth="0.18" viewBox="0 0 80 120" fill="none">
+      <rect x="20" y="10" width="40" height="90" rx="6" stroke="#48cfad" stroke-width="1.5" fill="rgba(72, 207, 173, 0.06)"/>
+      <circle cx="33" cy="35" r="4" fill="#ffd166"/>
+      <circle cx="47" cy="35" r="4" fill="#ffd166"/>
+      <path d="M36 50 Q40 55 44 50" stroke="#ffd166" stroke-width="1.5" fill="none"/>
+      <line x1="20" y1="70" x2="60" y2="70" stroke="#48cfad" stroke-width="1"/>
+      <polygon points="40,78 48,88 32,88" fill="rgba(247, 160, 114, 0.3)"/>
+    </svg>
+
+    <!-- Sacred Floating Octahedron (Bottom Left) -->
+    <svg class="monument-geo-item geo-bottom-left" data-depth="0.32" viewBox="0 0 80 80" fill="none">
+      <polygon points="40,8 70,40 40,72 10,40" stroke="#ffd166" stroke-width="1.5" fill="rgba(255, 209, 102, 0.08)"/>
+      <line x1="10" y1="40" x2="70" y2="40" stroke="#ffd166" stroke-width="1"/>
+      <line x1="40" y1="8" x2="40" y2="72" stroke="#ffd166" stroke-width="1"/>
+    </svg>
+
+    <!-- Impossible Stairway Silhouette (Bottom Right) -->
+    <svg class="monument-geo-item geo-bottom-right" data-depth="0.22" viewBox="0 0 100 100" fill="none">
+      <path d="M10 80 L30 80 L30 65 L50 65 L50 50 L70 50 L70 35 L90 35" stroke="#a29bfe" stroke-width="2" stroke-linecap="round"/>
+      <polygon points="70,35 90,35 90,90 70,90" fill="rgba(162, 155, 254, 0.08)"/>
+      <polygon points="50,50 70,50 70,90 50,90" fill="rgba(162, 155, 254, 0.05)"/>
+    </svg>
+  </div>
+
+  <!-- Top Search Bar with Motion Reactivity -->
+  <div class="search-container monument-interactive" id="searchContainer">
     <div class="search-box">
-      <svg viewBox="0 0 24 24">
-        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-      </svg>
+      <span class="search-icon-symbol">✦</span>
       <input type="text" id="searchInput" class="search-input" placeholder="Search city, landmark, or coordinates..." autocomplete="off">
     </div>
     <div id="searchResults" class="search-results"></div>
   </div>
 
-  <!-- Bottom Control Card -->
-  <div class="control-panel">
+  <!-- Bottom Floating Sanctuary Panel with 3D Parallax Tilt -->
+  <div class="control-panel monument-interactive" id="controlPanel">
     <div class="panel-header">
       <div class="header-brand">
-        <span class="panel-title">OpenGo</span>
-        <button id="wirelessBtn" class="wireless-badge" title="Connect Wirelessly via iPhone">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98A16.88 16.88 0 0 0 12 4zm0 3.22c3.51 0 6.7 1.34 9.1 3.52L12 19.89 2.9 10.74C5.3 8.56 8.49 7.22 12 7.22z"/>
-          </svg>
-          <span id="wirelessText">📱 Wireless</span>
-        </button>
+        <!-- Monument Valley Impossible Triangle Emblem -->
+        <svg class="monument-logo" viewBox="0 0 28 28" fill="none">
+          <polygon points="14,2 26,24 2,24" stroke="#f7a072" stroke-width="2" fill="rgba(247, 160, 114, 0.15)"/>
+          <polygon points="14,8 20,20 8,20" stroke="#48cfad" stroke-width="1.5" fill="rgba(72, 207, 173, 0.25)"/>
+        </svg>
+        <span class="panel-title">OPENGO</span>
       </div>
-      <div id="deviceBadge" class="device-badge" title="Click to view & switch connected devices">
-        <div id="statusDot" class="status-dot"></div>
-        <div class="device-text-container" id="deviceText">Checking devices...</div>
-        <span id="connPill" class="conn-pill usb" style="display:none;">USB</span>
-        <span id="deviceCountBadge" class="device-count-badge" style="display:none;">1</span>
-        <svg class="chevron-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
+      <div class="header-actions">
+        <!-- Melodic Chimes Audio Toggle -->
+        <button id="soundToggleBtn" class="monument-badge-btn sound-toggle-btn" title="Toggle Melodic Chimes">
+          <span id="soundIcon">🔔</span>
+        </button>
+
+        <!-- Wireless QR Launcher -->
+        <button id="wirelessBtn" class="monument-badge-btn" title="Open Wireless Companion Mode">
+          <span>📱</span>
+          <span id="wirelessText">Wireless</span>
+        </button>
+
+        <!-- Detailed Devices Modal Button -->
+        <button id="deviceBadge" class="monument-badge-btn" title="Manage Connected iPhones">
+          <span id="connPill" style="font-size:10px; font-weight:700;">USB</span>
+          <span id="deviceCountBadge" style="font-size:10px; opacity:0.8;">1</span>
+        </button>
       </div>
     </div>
 
-    <!-- On-Card Target Phone Selector -->
+    <!-- On-Card Target Phone Sanctuary (Totem Switcher) -->
     <div class="target-device-card" id="targetDeviceContainer">
       <div class="target-device-header">
-        <span class="target-label">TARGET IPHONE</span>
+        <span class="target-label">✦ TARGET IPHONE</span>
         <div class="target-meta">
           <span id="targetDeviceCount" class="target-count">Detecting...</span>
           <button id="rescanBtn" class="rescan-btn" title="Re-scan connected devices">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/>
             </svg>
             Rescan
@@ -992,26 +1095,31 @@
       </div>
 
       <div id="devicePickerList" class="device-picker-list">
-        <div style="font-size: 12px; color: #8e8e93; padding: 6px 4px;">Searching for connected iPhones...</div>
+        <div style="font-size: 12px; color: var(--mv-text-muted); padding: 8px 4px; text-align: center;">
+          Connecting with local iOS devices...
+        </div>
       </div>
 
       <div id="inlineDeviceAlert" class="inline-device-alert" style="display: none;"></div>
     </div>
 
+    <!-- Selected Target Location Details -->
     <div class="location-display">
-      <div id="locationAddress" class="location-address">Click on the map to drop a pin</div>
-      <div id="locationCoords" class="location-coords">37.774929, -122.419416</div>
+      <div id="locationAddress" class="location-address">Click on the map to drop the sacred pin</div>
+      <div id="locationCoords" class="location-coords">12.869810, 74.843008</div>
     </div>
 
+    <!-- Monumental Mechanical Action Triggers -->
     <div class="actions-row">
       <button id="shiftBtn" class="btn btn-primary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
         Shift Location
       </button>
+
       <button id="resetBtn" class="btn btn-secondary">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
           <path d="M3 3v5h5"/>
         </svg>
@@ -1027,8 +1135,8 @@
         <div class="modal-heading">
           <div class="modal-icon">📱</div>
           <div>
-            <h3>OpenGo on iPhone</h3>
-            <p>Control GPS wirelessly from your phone</p>
+            <h3>Wireless Sanctuary</h3>
+            <p>Control OpenGo directly from your iPhone</p>
           </div>
         </div>
         <button id="closeModalBtn" class="close-btn">&times;</button>
@@ -1039,14 +1147,14 @@
       </div>
 
       <div class="url-strip">
-        <input type="text" id="mobileUrlDisplay" readonly value="Loading..." />
+        <input type="text" id="mobileUrlDisplay" readonly value="Detecting Wi-Fi address...">
         <button id="copyUrlBtn" class="copy-btn">Copy</button>
       </div>
 
       <div class="modal-steps">
         <div class="step-row">
           <span class="step-num">1</span>
-          <span>Connect your iPhone to the same Wi-Fi network.</span>
+          <span>Connect your iPhone to the same Wi-Fi network as this Mac.</span>
         </div>
         <div class="step-row">
           <span class="step-num">2</span>
@@ -1060,7 +1168,7 @@
     </div>
   </div>
 
-  <!-- Device Selector Modal -->
+  <!-- Device Diagnostics Modal -->
   <div id="deviceModal" class="modal-backdrop">
     <div class="modal-sheet" style="max-width: 440px;">
       <div class="modal-top">
@@ -1068,18 +1176,18 @@
           <div class="modal-icon">📲</div>
           <div>
             <h3>Connected iOS Devices</h3>
-            <p>Select which phone to change location for</p>
+            <p>Choose active target for location simulation</p>
           </div>
         </div>
         <button id="closeDeviceModalBtn" class="close-btn">&times;</button>
       </div>
 
-      <div id="deviceList" class="device-list">
-        <div style="text-align: center; color: #8e8e93; padding: 20px;">Scanning for devices...</div>
+      <div id="deviceList" class="device-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px; max-height:260px; overflow-y:auto;">
+        <div style="text-align: center; color: var(--mv-text-muted); padding: 20px;">Scanning for devices...</div>
       </div>
 
-      <button id="refreshDevicesBtn" class="refresh-devices-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <button id="refreshDevicesBtn" class="rescan-btn" style="width:100%; justify-content:center; padding:10px; font-size:12px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
         </svg>
         Re-scan USB & Wi-Fi Devices
@@ -1087,12 +1195,12 @@
 
       <div class="modal-steps" style="margin-top: 14px;">
         <div class="step-row">
-          <span class="step-num">🔌</span>
-          <span><strong>Connect via Cable:</strong> Plug iPhone into Mac via USB, unlock screen, and tap <em>Trust This Computer</em>.</span>
+          <span class="step-num">⚡</span>
+          <span><strong>USB Wired:</strong> Connect iPhone to Mac with cable, unlock screen, and tap <em>Trust This Computer</em>.</span>
         </div>
         <div class="step-row">
           <span class="step-num">⚙️</span>
-          <span><strong>Developer Mode:</strong> On iPhone, open <em>Settings → Privacy & Security → Developer Mode</em>, toggle <strong>ON</strong> and restart.</span>
+          <span><strong>Developer Mode:</strong> On iPhone: <em>Settings → Privacy & Security → Developer Mode</em> → Turn <strong>ON</strong> and restart.</span>
         </div>
       </div>
     </div>
@@ -1112,14 +1220,17 @@
     let currentLat = 12.869810;
     let currentLon = 74.843008;
     let marker = null;
+    let cachedDevices = [];
+    let activeDevice = null;
 
-    // Elements
+    // DOM Elements
+    const cursorAura = document.getElementById('cursorAura');
+    const controlPanel = document.getElementById('controlPanel');
+    const searchContainer = document.getElementById('searchContainer');
     const locationAddress = document.getElementById('locationAddress');
     const locationCoords = document.getElementById('locationCoords');
     const shiftBtn = document.getElementById('shiftBtn');
     const resetBtn = document.getElementById('resetBtn');
-    const deviceText = document.getElementById('deviceText');
-    const statusDot = document.getElementById('statusDot');
     const deviceBadge = document.getElementById('deviceBadge');
     const connPill = document.getElementById('connPill');
     const deviceCountBadge = document.getElementById('deviceCountBadge');
@@ -1142,18 +1253,198 @@
     const targetDeviceCount = document.getElementById('targetDeviceCount');
     const inlineDeviceAlert = document.getElementById('inlineDeviceAlert');
     const rescanBtn = document.getElementById('rescanBtn');
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundIcon = document.getElementById('soundIcon');
 
-    // Initialize Map with dark tiles
+    // ==========================================
+    // 1. Procedural Web Audio Engine (Monument Valley Chimes)
+    // ==========================================
+    class MonumentAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = localStorage.getItem('opengo_sound') !== 'false';
+      }
+
+      init() {
+        if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      toggle() {
+        this.enabled = !this.enabled;
+        localStorage.setItem('opengo_sound', this.enabled);
+        if (this.enabled) {
+          this.playChime(659.25, 'sine', 0.8, 0.12); // E5
+        }
+        return this.enabled;
+      }
+
+      playChime(freq = 523.25, type = 'sine', duration = 1.2, gainVal = 0.12) {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+
+          // Monument Valley gentle bell attack & warm decay
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(gainVal, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + duration);
+        } catch (e) {
+          // Graceful fallback if audio is disabled
+        }
+      }
+
+      playTotemTap() {
+        if (!this.enabled) return;
+        this.playChime(440, 'triangle', 0.22, 0.08); // A4 wooden totem click
+      }
+
+      playShiftChord() {
+        if (!this.enabled) return;
+        // Ascending sacred pentatonic arpeggio: C5, E5, G5, C6
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, i) => {
+          setTimeout(() => this.playChime(freq, 'sine', 1.4, 0.14), i * 95);
+        });
+      }
+
+      playResetChord() {
+        if (!this.enabled) return;
+        // Descending calming harmonic: G5, E5, C5
+        const notes = [783.99, 659.25, 523.25];
+        notes.forEach((freq, i) => {
+          setTimeout(() => this.playChime(freq, 'sine', 1.1, 0.1), i * 110);
+        });
+      }
+    }
+
+    const soundEngine = new MonumentAudioEngine();
+    function updateSoundBtnUI() {
+      if (soundEngine.enabled) {
+        soundIcon.textContent = '🔔';
+        soundToggleBtn.title = 'Melodic Chimes: Active (Click to mute)';
+      } else {
+        soundIcon.textContent = '🔕';
+        soundToggleBtn.title = 'Melodic Chimes: Muted (Click to enable)';
+      }
+    }
+    updateSoundBtnUI();
+
+    soundToggleBtn.addEventListener('click', () => {
+      const active = soundEngine.toggle();
+      updateSoundBtnUI();
+      showToast(active ? "✓ Melodic Chimes Enabled" : "✕ Melodic Chimes Muted", "info");
+    });
+
+    // ==========================================
+    // 2. Cursor Motion & Parallax Reaction Loop
+    // ==========================================
+    let targetX = 0, targetY = 0;
+    let currentX = 0, currentY = 0;
+
+    window.addEventListener('mousemove', (e) => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      targetX = (e.clientX / w) * 2 - 1; // -1 to 1
+      targetY = (e.clientY / h) * 2 - 1; // -1 to 1
+
+      // Move glowing cursor halo
+      if (cursorAura) {
+        cursorAura.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+      }
+
+      // Update specular gradient highlight on interactive cards
+      document.querySelectorAll('.monument-interactive').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        el.style.setProperty('--mouse-x', `${mx}px`);
+        el.style.setProperty('--mouse-y', `${my}px`);
+      });
+    }, { passive: true });
+
+    // Gyroscope / device orientation support for iOS mobile Safari
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', (e) => {
+        if (e.gamma !== null && e.beta !== null) {
+          targetX = Math.max(-1, Math.min(1, e.gamma / 25));
+          targetY = Math.max(-1, Math.min(1, (e.beta - 45) / 25));
+        }
+      }, { passive: true });
+    }
+
+    // Smooth animation loop using requestAnimationFrame + lerp
+    function runParallaxLoop() {
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
+
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        // 3D tilt on bottom control card
+        if (controlPanel) {
+          const tiltX = -currentY * 7;
+          const tiltY = currentX * 9;
+          controlPanel.style.transform = `translate(-50%, 0) perspective(1100px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`;
+        }
+
+        // 3D tilt on top search container
+        if (searchContainer) {
+          const tiltX = -currentY * 5;
+          const tiltY = currentX * 7;
+          searchContainer.style.transform = `translate(-50%, 0) perspective(800px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`;
+        }
+
+        // Floating geometric shapes in background
+        document.querySelectorAll('.monument-geo-item').forEach(el => {
+          const depth = parseFloat(el.getAttribute('data-depth') || '0.2');
+          const posX = currentX * depth * 45;
+          const posY = currentY * depth * 45;
+          const rot = currentX * depth * 14;
+          el.style.transform = `translate3d(${posX.toFixed(1)}px, ${posY.toFixed(1)}px, 0) rotate(${rot.toFixed(1)}deg)`;
+        });
+      }
+
+      requestAnimationFrame(runParallaxLoop);
+    }
+    requestAnimationFrame(runParallaxLoop);
+
+    // ==========================================
+    // 3. Leaflet Map Configuration (Monument Valley Themes)
+    // ==========================================
     const map = L.map('map', {
       center: [currentLat, currentLon],
       zoom: 13,
       zoomControl: false
     });
 
-    // Base tile layers (Zero API keys required)
-    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Curated CartoDB Voyager: Soft watercolor pastel styling like Monument Valley
+    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+      subdomains: 'abcd',
+      attribution: '&copy; CartoDB &copy; OpenStreetMap'
+    });
+
+    // CartoDB Dark Matter: Twilight Night Theme
+    const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: '&copy; CartoDB &copy; OpenStreetMap'
     });
 
     const esriStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -1166,38 +1457,53 @@
       attribution: 'Tiles &copy; Esri'
     });
 
-    // Default to OSM
-    osmLayer.addTo(map);
+    // Default to CartoDB Voyager (Monument Valley aesthetic)
+    cartoVoyager.addTo(map);
 
-    // Layer Control
+    // Layer Switcher
     const baseMaps = {
-      "OpenStreetMap": osmLayer,
-      "Street Map": esriStreetLayer,
-      "Satellite": esriSatLayer
+      "✦ Pastel Valley": cartoVoyager,
+      "✦ Twilight Dusk": cartoDark,
+      "✦ Street Map": esriStreetLayer,
+      "✦ Satellite": esriSatLayer
     };
     L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
-
-    // Zoom Control
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // Custom Glowing SVG Marker Icon
-    const customIcon = L.divIcon({
-      className: 'pulse-pin-container',
+    // Custom Monument Valley Princess Ida Beacon Pin Marker
+    const monumentBeaconIcon = L.divIcon({
+      className: 'monument-pin-container',
       html: `
-        <div class="pulse-circle"></div>
-        <svg class="pin-icon" width="28" height="34" viewBox="0 0 24 30" fill="none">
-          <path d="M12 0C5.37258 0 0 5.37258 0 12C0 20.25 12 30 12 30C12 30 24 20.25 24 12C24 5.37258 18.6274 0 12 0Z" fill="#0071E3"/>
-          <circle cx="12" cy="11" r="5" fill="#FFFFFF"/>
-        </svg>
+        <div class="monument-pin-ripple"></div>
+        <div class="monument-beacon-art">
+          <svg width="38" height="50" viewBox="0 0 38 50" fill="none">
+            <!-- Isometric Sacred Gem -->
+            <polygon points="19,2 34,17 19,32 4,17" fill="url(#mvGemGrad)" stroke="#fdfbf7" stroke-width="1.8"/>
+            <polygon points="19,2 19,32 4,17" fill="rgba(255,255,255,0.22)"/>
+            <!-- Inner Mystic Eye -->
+            <circle cx="19" cy="17" r="3.2" fill="#101322"/>
+            <circle cx="19" cy="17" r="1.4" fill="#ffd166"/>
+            <!-- Stem and ground shadow -->
+            <path d="M19 32 L19 46" stroke="#f7a072" stroke-width="2.5" stroke-linecap="round"/>
+            <ellipse cx="19" cy="48" rx="6" ry="2" fill="rgba(0,0,0,0.5)"/>
+            <defs>
+              <linearGradient id="mvGemGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#ffd166"/>
+                <stop offset="50%" stop-color="#f7a072"/>
+                <stop offset="100%" stop-color="#e06d53"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
       `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32]
+      iconSize: [44, 48],
+      iconAnchor: [22, 48]
     });
 
-    // Reverse Geocoding with OpenStreetMap Nominatim
+    // Reverse Geocoding via Nominatim
     let reverseGeocodeTimeout = null;
     async function reverseGeocode(lat, lon) {
-      locationAddress.textContent = "Fetching address...";
+      locationAddress.textContent = "Consulting ancient maps...";
       clearTimeout(reverseGeocodeTimeout);
       reverseGeocodeTimeout = setTimeout(async () => {
         try {
@@ -1205,19 +1511,18 @@
           const data = await res.json();
           if (data && data.display_name) {
             const parts = data.display_name.split(', ');
-            const summary = parts.slice(0, 3).join(', ');
-            locationAddress.textContent = summary;
+            locationAddress.textContent = parts.slice(0, 3).join(', ');
           } else {
-            locationAddress.textContent = "Unknown location";
+            locationAddress.textContent = "Sacred coordinates selected";
           }
         } catch {
-          locationAddress.textContent = "Location selected";
+          locationAddress.textContent = "Coordinates pinpointed";
         }
       }, 300);
     }
 
     // Update Target Pin
-    function updatePin(lat, lon, knownAddress = null) {
+    function updatePin(lat, lon, knownAddress = null, playSound = false) {
       currentLat = lat;
       currentLon = lon;
       locationCoords.textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
@@ -1232,24 +1537,31 @@
         marker.setLatLng([lat, lon]);
       } else {
         marker = L.marker([lat, lon], {
-          icon: customIcon,
+          icon: monumentBeaconIcon,
           draggable: true
         }).addTo(map);
 
         marker.on('dragend', (e) => {
           const pos = e.target.getLatLng();
-          updatePin(pos.lat, pos.lng);
+          updatePin(pos.lat, pos.lng, null, true);
         });
+      }
+
+      if (playSound) {
+        // Play melodic pentatonic chime when pin drops
+        const chimeNotes = [523.25, 587.33, 659.25, 783.99, 880.00];
+        const randomNote = chimeNotes[Math.floor(Math.random() * chimeNotes.length)];
+        soundEngine.playChime(randomNote, 'sine', 1.2, 0.14);
       }
     }
 
-    // Map Click Handler
+    // Map Click
     map.on('click', (e) => {
-      updatePin(e.latlng.lat, e.latlng.lng);
+      updatePin(e.latlng.lat, e.latlng.lng, null, true);
     });
 
     // Initial Pin Placement
-    updatePin(currentLat, currentLon, "Mangalore, Karnataka, India");
+    updatePin(currentLat, currentLon, "Mangalore, Karnataka, India", false);
 
     // Search Autocomplete
     let searchDebounce = null;
@@ -1267,7 +1579,7 @@
         const lon = parseFloat(coordMatch[3]);
         if (!isNaN(lat) && !isNaN(lon)) {
           map.flyTo([lat, lon], 14);
-          updatePin(lat, lon);
+          updatePin(lat, lon, null, true);
           return;
         }
       }
@@ -1279,7 +1591,7 @@
           if (items && items.length > 0) {
             searchResults.innerHTML = items.map(item => `
               <div class="search-item" data-lat="${item.lat}" data-lon="${item.lon}">
-                ${item.display_name}
+                ✦ ${item.display_name}
               </div>
             `).join('');
             searchResults.style.display = 'block';
@@ -1289,7 +1601,7 @@
                 const lat = parseFloat(el.getAttribute('data-lat'));
                 const lon = parseFloat(el.getAttribute('data-lon'));
                 map.flyTo([lat, lon], 14);
-                updatePin(lat, lon, el.textContent.trim().split(', ').slice(0, 2).join(', '));
+                updatePin(lat, lon, el.textContent.replace('✦', '').trim().split(', ').slice(0, 2).join(', '), true);
                 searchResults.style.display = 'none';
                 searchInput.value = '';
               });
@@ -1309,13 +1621,13 @@
       }
     });
 
-    // Toast Notification helper
+    // Toast Notification
     let toastTimeout = null;
     function showToast(text, type = "success") {
       clearTimeout(toastTimeout);
       toast.className = `toast ${type} show`;
       toastMessage.textContent = text;
-      toastIcon.textContent = type === "success" ? "✓" : (type === "error" ? "✕" : "ℹ");
+      toastIcon.textContent = type === "success" ? "✦" : (type === "error" ? "✕" : "ℹ");
       toastTimeout = setTimeout(() => {
         toast.classList.remove('show');
       }, 3500);
@@ -1334,19 +1646,15 @@
         });
         return await res.json();
       } catch (err) {
-        return { success: false, message: "Could not reach backend service." };
+        return { success: false, message: "Sanctuary connection unavailable." };
       }
     }
 
-    // Device State
-    let cachedDevices = [];
-    let activeDevice = null;
-
-    // Render device list in modal
-    function renderDeviceList(devices) {
+    // Render device list inside modal
+    function renderModalDeviceList(devices) {
       if (!devices || devices.length === 0) {
         deviceList.innerHTML = `
-          <div style="text-align: center; color: #8e8e93; padding: 24px;">
+          <div style="text-align: center; color: var(--mv-text-muted); padding: 24px;">
             <div style="font-size: 28px; margin-bottom: 8px;">🔌</div>
             <div style="font-weight: 600; color: #fff;">No iPhone Detected</div>
             <div style="font-size: 12px; margin-top: 4px;">Connect your iPhone via USB cable to this Mac and unlock the screen.</div>
@@ -1356,34 +1664,26 @@
       }
 
       deviceList.innerHTML = devices.map(d => {
-        const isSel = d.is_selected;
-        const icon = d.is_wired ? '🔌' : '📶';
+        const isSel = (activeDevice && activeDevice.udid === d.udid) || d.is_selected;
+        const icon = d.is_wired ? '⚡' : '📶';
         const connType = d.is_wired ? 'Wired (USB)' : 'Wireless (Wi-Fi)';
-        const devMode = d.developer_mode === 'disabled'
-          ? '<span class="warn-badge">Dev Mode Off</span>'
-          : '<span style="font-size:10px; color:#30d158; font-weight:600;">✓ Ready</span>';
-
         return `
-          <div class="device-card ${isSel ? 'selected' : ''}" data-udid="${d.udid}">
-            <div class="device-card-left">
-              <div class="device-avatar">${icon}</div>
-              <div class="device-card-info">
-                <div class="device-card-name">
-                  ${d.name}
-                  ${devMode}
-                </div>
-                <div class="device-card-sub">${d.marketing_name} • iOS ${d.version || '?'} • ${connType}</div>
+          <div class="device-picker-item ${isSel ? 'active' : ''}" data-udid="${d.udid}">
+            <div class="device-picker-left">
+              <div class="device-picker-icon">${icon}</div>
+              <div class="device-picker-text">
+                <div class="device-picker-name">${d.name}</div>
+                <div class="device-picker-sub">${d.marketing_name} • iOS ${d.version || '?'} • ${connType}</div>
               </div>
             </div>
-            <div class="device-card-right">
-              ${isSel ? '<span class="selected-check">✓ Active</span>' : '<span style="font-size:12px; color:#86868b;">Select</span>'}
+            <div class="device-picker-badge ${isSel ? 'active' : 'select'}">
+              ${isSel ? 'ACTIVE' : 'SELECT'}
             </div>
           </div>
         `;
       }).join('');
 
-      // Add click listeners to device cards
-      document.querySelectorAll('.device-card').forEach(card => {
+      deviceList.querySelectorAll('.device-picker-item').forEach(card => {
         card.addEventListener('click', async () => {
           const udid = card.getAttribute('data-udid');
           await switchDevice(udid);
@@ -1391,44 +1691,46 @@
       });
     }
 
+    // Switch Target Device
     async function switchDevice(udid) {
-      showToast("Switching active device...", "info");
+      soundEngine.playTotemTap();
+      showToast("Attuning to iPhone...", "info");
       try {
         const res = await callBackend('select_device', udid);
         if (res && res.success) {
           activeDevice = res.selected_device;
           cachedDevices = res.devices || [];
           updateDeviceUI(activeDevice, cachedDevices);
-          renderDeviceList(cachedDevices);
+          renderModalDeviceList(cachedDevices);
           deviceModal.classList.remove('show');
-          showToast(`✓ Active phone: ${activeDevice ? activeDevice.name : 'Selected'}`, "success");
+          showToast(`✦ Attuned to ${activeDevice ? activeDevice.name : 'Target'}`, "success");
         } else {
-          showToast("Failed to switch device.", "error");
+          showToast("Failed to switch target device.", "error");
         }
       } catch (e) {
         showToast("Error switching device: " + e.message, "error");
       }
     }
 
+    // Update UI with detected devices
     function updateDeviceUI(sel, devices) {
       if (!sel || !devices || devices.length === 0) {
-        statusDot.className = "status-dot";
-        deviceText.textContent = "No iPhone Connected";
-        connPill.style.display = "none";
+        connPill.textContent = "NO IPHONE";
+        connPill.style.color = "#ff8585";
         deviceCountBadge.style.display = "none";
-        if (targetDeviceCount) targetDeviceCount.textContent = "0 Connected";
+        if (targetDeviceCount) targetDeviceCount.textContent = "0 Available";
         if (devicePickerList) {
           devicePickerList.innerHTML = `
-            <div style="font-size: 12px; color: #8e8e93; padding: 10px 4px; text-align: center;">
-              🔌 Connect an iPhone via USB cable & unlock the screen
+            <div style="font-size: 12px; color: var(--mv-text-muted); padding: 12px 4px; text-align: center;">
+              🔌 Plug in your iPhone with cable & unlock the screen
             </div>
           `;
         }
         if (inlineDeviceAlert) inlineDeviceAlert.style.display = "none";
         if (shiftBtn) {
           shiftBtn.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
             Shift Location
           `;
@@ -1436,47 +1738,32 @@
         return;
       }
 
-      // Status Dot
-      if (sel.developer_mode === 'disabled') {
-        statusDot.className = "status-dot warning";
-      } else {
-        statusDot.className = "status-dot active";
-      }
+      // Header Badge
+      connPill.textContent = sel.is_wired ? "USB" : "WI-FI";
+      connPill.style.color = sel.is_wired ? "var(--mv-totem-cyan)" : "var(--mv-gold)";
 
-      deviceText.textContent = sel.name || "iPhone Connected";
-
-      // Connection Pill in Header
-      connPill.style.display = "inline-block";
-      if (sel.is_wired) {
-        connPill.className = "conn-pill usb";
-        connPill.textContent = "USB";
-      } else {
-        connPill.className = "conn-pill wifi";
-        connPill.textContent = "Wi-Fi";
-      }
-
-      // Multi-device count in Header
       if (devices && devices.length > 1) {
-        deviceCountBadge.style.display = "inline-block";
-        deviceCountBadge.textContent = `${devices.length} Devices ▾`;
+        deviceCountBadge.style.display = "inline";
+        deviceCountBadge.textContent = `${devices.length} Devices`;
       } else {
         deviceCountBadge.style.display = "none";
       }
 
-      // Update On-Card Target Device Selector
+      // Target count
       if (targetDeviceCount) {
-        targetDeviceCount.textContent = `${devices.length} Available`;
+        targetDeviceCount.textContent = `${devices.length} Connected`;
       }
 
+      // Populate interactive Totem Device Switcher Tiles
       if (devicePickerList) {
         devicePickerList.innerHTML = devices.map(d => {
           const isSel = (sel && sel.udid === d.udid) || d.is_selected;
-          const icon = d.is_wired ? '🔌' : '📶';
+          const icon = d.is_wired ? '⚡' : '📶';
           const connLabel = d.is_wired ? 'Wired (USB)' : 'Wireless (Wi-Fi)';
           const devModel = d.marketing_name || 'iPhone';
 
           return `
-            <div class="device-picker-item ${isSel ? 'active' : ''}" data-udid="${d.udid}" title="Click to simulate on ${d.name}">
+            <div class="device-picker-item ${isSel ? 'active' : ''}" data-udid="${d.udid}" title="Click to attune to ${d.name}">
               <div class="device-picker-left">
                 <div class="device-picker-icon">${icon}</div>
                 <div class="device-picker-text">
@@ -1485,16 +1772,16 @@
                 </div>
               </div>
               <div class="device-picker-badge ${isSel ? 'active' : 'select'}">
-                ${isSel ? '✓ ACTIVE' : 'Select'}
+                ${isSel ? '● ACTIVE' : 'SELECT'}
               </div>
             </div>
           `;
         }).join('');
 
-        // Wire click events
-        devicePickerList.querySelectorAll('.device-picker-item').forEach(card => {
-          card.addEventListener('click', async () => {
-            const targetUdid = card.getAttribute('data-udid');
+        // Wire click handlers
+        devicePickerList.querySelectorAll('.device-picker-item').forEach(tile => {
+          tile.addEventListener('click', async () => {
+            const targetUdid = tile.getAttribute('data-udid');
             if (sel && sel.udid === targetUdid) return;
             await switchDevice(targetUdid);
           });
@@ -1505,29 +1792,28 @@
       const targetLabel = sel ? `${sel.name} (${sel.is_wired ? 'USB' : 'Wi-Fi'})` : 'iPhone';
       if (shiftBtn && !shiftBtn.disabled) {
         shiftBtn.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
           </svg>
-          Shift Location → ${targetLabel}
+          Shift → ${targetLabel}
         `;
       }
 
-      // Inline Alert Banner for instructions/warnings
+      // Warning guidance if developer mode is still pending reboot approval
       if (inlineDeviceAlert) {
         if (sel.developer_mode === 'disabled') {
-          inlineDeviceAlert.className = 'inline-device-alert';
           inlineDeviceAlert.style.display = 'block';
-          inlineDeviceAlert.innerHTML = `⚠️ Developer Mode may be off or pending on <strong>${sel.name}</strong>. If prompted on screen after reboot, tap "Turn On".`;
+          inlineDeviceAlert.innerHTML = `⚠️ Developer Mode may be pending on <strong>${sel.name}</strong>. If a prompt appears on screen, tap "Turn On".`;
         } else {
           inlineDeviceAlert.style.display = 'none';
         }
       }
     }
 
-    // Device Status Polling
+    // Polling Device Status
     async function checkDevice(showScanFeedback = false) {
       if (showScanFeedback) {
-        deviceList.innerHTML = `<div style="text-align: center; color: #8e8e93; padding: 20px;">Scanning USB & Wi-Fi...</div>`;
+        if (deviceList) deviceList.innerHTML = `<div style="text-align: center; color: var(--mv-text-muted); padding: 20px;">Scanning USB & Wi-Fi Sanctuary...</div>`;
       }
       try {
         const res = await callBackend('get_device_status');
@@ -1535,17 +1821,17 @@
           activeDevice = res.selected_device;
           cachedDevices = res.devices || [];
           updateDeviceUI(activeDevice, cachedDevices);
-          renderDeviceList(cachedDevices);
+          renderModalDeviceList(cachedDevices);
           if (showScanFeedback) {
-            showToast(`Found ${cachedDevices.length} device(s)`, "info");
+            showToast(`✦ Detected ${cachedDevices.length} iOS device(s)`, "info");
           }
         } else {
           activeDevice = null;
           cachedDevices = [];
           updateDeviceUI(null, []);
-          renderDeviceList([]);
+          renderModalDeviceList([]);
           if (showScanFeedback) {
-            showToast("No devices found.", "error");
+            showToast("No devices detected.", "error");
           }
         }
       } catch (err) {
@@ -1554,7 +1840,8 @@
     }
 
     deviceBadge.addEventListener('click', () => {
-      renderDeviceList(cachedDevices);
+      soundEngine.playTotemTap();
+      renderModalDeviceList(cachedDevices);
       deviceModal.classList.add('show');
       checkDevice();
     });
@@ -1564,17 +1851,17 @@
     });
 
     deviceModal.addEventListener('click', (e) => {
-      if (e.target === deviceModal) {
-        deviceModal.classList.remove('show');
-      }
+      if (e.target === deviceModal) deviceModal.classList.remove('show');
     });
 
     refreshDevicesBtn.addEventListener('click', () => {
+      soundEngine.playTotemTap();
       checkDevice(true);
     });
 
     if (rescanBtn) {
       rescanBtn.addEventListener('click', () => {
+        soundEngine.playTotemTap();
         checkDevice(true);
       });
     }
@@ -1598,6 +1885,7 @@
     }
 
     wirelessBtn.addEventListener('click', () => {
+      soundEngine.playTotemTap();
       initWirelessInfo();
       wirelessModal.classList.add('show');
     });
@@ -1607,48 +1895,47 @@
     });
 
     wirelessModal.addEventListener('click', (e) => {
-      if (e.target === wirelessModal) {
-        wirelessModal.classList.remove('show');
-      }
+      if (e.target === wirelessModal) wirelessModal.classList.remove('show');
     });
 
     copyUrlBtn.addEventListener('click', () => {
       if (currentMobileUrl) {
         navigator.clipboard.writeText(currentMobileUrl);
-        showToast("✓ Copied URL to clipboard!", "success");
+        showToast("✦ Copied Sanctuary URL to clipboard!", "success");
       }
     });
 
-    // Shift Location Action
+    // Shift Location Action Trigger
     shiftBtn.addEventListener('click', async () => {
       shiftBtn.disabled = true;
       shiftBtn.textContent = "Shifting...";
       const targetName = activeDevice ? `${activeDevice.name} (${activeDevice.is_wired ? 'USB' : 'Wi-Fi'})` : 'iPhone';
-      showToast(`Sending location to ${targetName}...`, "info");
+      showToast(`Shifting location to ${targetName}...`, "info");
 
       try {
         const targetUdid = activeDevice ? activeDevice.udid : null;
         const res = await callBackend('shift_location', currentLat, currentLon, targetUdid);
         if (res.success) {
-          showToast(`✓ Location shifted on ${targetName}!`, "success");
+          soundEngine.playShiftChord();
+          showToast(`✦ Location shifted on ${targetName}!`, "success");
         } else {
           showToast(res.message || "Failed to shift location.", "error");
         }
       } catch (e) {
-        showToast("Error executing location shift: " + e.message, "error");
+        showToast("Error executing shift: " + e.message, "error");
       } finally {
         shiftBtn.disabled = false;
         const targetLabel = activeDevice ? `${activeDevice.name} (${activeDevice.is_wired ? 'USB' : 'Wi-Fi'})` : 'iPhone';
         shiftBtn.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
           </svg>
-          Shift Location → ${targetLabel}
+          Shift → ${targetLabel}
         `;
       }
     });
 
-    // Reset GPS Action
+    // Reset GPS Action Trigger
     resetBtn.addEventListener('click', async () => {
       resetBtn.disabled = true;
       resetBtn.textContent = "Restoring...";
@@ -1659,7 +1946,8 @@
         const targetUdid = activeDevice ? activeDevice.udid : null;
         const res = await callBackend('reset_location', targetUdid);
         if (res.success) {
-          showToast(`✓ Real GPS restored on ${targetName}.`, "success");
+          soundEngine.playResetChord();
+          showToast(`✦ Real GPS restored on ${targetName}.`, "success");
         } else {
           showToast(res.message || "Failed to reset location.", "error");
         }
@@ -1668,7 +1956,7 @@
       } finally {
         resetBtn.disabled = false;
         resetBtn.innerHTML = `
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/>
           </svg>
@@ -1677,10 +1965,11 @@
       }
     });
 
-    // Detect if running on mobile device or installed as PWA
+    // Mobile / PWA Detection
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile) {
       if (wirelessBtn) wirelessBtn.style.display = 'none';
+      if (cursorAura) cursorAura.style.display = 'none';
       console.log("📱 Running OpenGo on mobile device");
     }
   </script>
